@@ -5,16 +5,26 @@ import {
   PanelSectionRow,
   ServerAPI,
   staticClasses,
+  Router,
 } from "decky-frontend-lib";
 import { VFC } from "react";
 import { FaShip } from "react-icons/fa";
 
-const Content: VFC<{ serverAPI: ServerAPI }> = ({}) => {
+const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
+
+  const start_recording = async() => {
+    serverAPI.callPluginMethod('start_recording', {});
+  }
 
   return (
     <PanelSection>
       <PanelSectionRow>
-        <ButtonItem layout="below" >
+        <ButtonItem 
+          layout="below"
+          onClick={() => {
+            start_recording();
+            Router.CloseSideMenus();
+          }}>
           Start recording
         </ButtonItem>
       </PanelSectionRow>
