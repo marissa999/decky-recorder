@@ -5,6 +5,7 @@ import {
 	PanelSectionRow,
 	ServerAPI,
 	staticClasses,
+	Router
 } from "decky-frontend-lib";
 
 import {
@@ -19,13 +20,21 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	const [recordingStarted, setRecordingStarted] = useState(false);
 
 	const recordingButtonPress = async() => {
-	if (recordingStarted === false){
-		setRecordingStarted(true);
-		await serverAPI.callPluginMethod('start_recording', {});
-	} else {
-		setRecordingStarted(false);
-		await serverAPI.callPluginMethod('end_recording', {});
+		if (recordingStarted === false){
+			setRecordingStarted(true);
+			await serverAPI.callPluginMethod('start_recording', {});
+		} else {
+			setRecordingStarted(false);
+			await serverAPI.callPluginMethod('end_recording', {});
+		}
 	}
+
+	const installDependencies = async() => {
+		await serverAPI.callPluginMethod('install_deps', {});
+	}
+
+	const uninstallDependencies = async() => {
+		await serverAPI.callPluginMethod('uninstall_deps', {});
 	}
 
 	return (
@@ -33,12 +42,33 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		<PanelSectionRow>
 			<ButtonItem 
 				label="Recordings will be saved to ~/Videos"
+				layout="below"
+				onClick={() => {
+					recordingButtonPress();
+					Router.CloseSideMenus();
+				}}>
+				{recordingStarted === false ? "Start Recording" : "Stop Recording"}
+			</ButtonItem>
+		</PanelSectionRow>
+		<PanelSectionRow>
+			<ButtonItem 
+				label="Install needed dependencies"
+				layout="below"
+				onClick={() => {
+					installDependencies();
+				}}>
+				Install needed dependencies
+			</ButtonItem>
+		</PanelSectionRow>
+		<PanelSectionRow>
+			<ButtonItem 
+				label="Uninstall dependencies"
 				bottomSeparator="none"
 				layout="below"
 				onClick={() => {
-				recordingButtonPress();
+					uninstallDependencies();
 				}}>
-				{recordingStarted === false ? "Start Recording" : "Stop Recording"}
+				Uninstall dependencies
 			</ButtonItem>
 		</PanelSectionRow>
 	</PanelSection>
