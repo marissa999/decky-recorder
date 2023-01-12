@@ -5,10 +5,14 @@ import {
   PanelSectionRow,
   ServerAPI,
   staticClasses,
-  Router,
 } from "decky-frontend-lib";
-import { VFC, useState } from "react";
-import { FaShip, FaVideo } from "react-icons/fa";
+
+import {
+  VFC, 
+  useState
+} from "react";
+
+import { FaVideo } from "react-icons/fa";
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
@@ -33,7 +37,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
           layout="below"
           onClick={() => {
             recordingButtonPress();
-            Router.CloseSideMenus();
           }}>
           {recordingStarted === false ? "Start Recording" : "Stop Recording"}
         </ButtonItem>
@@ -47,8 +50,5 @@ export default definePlugin((serverApi: ServerAPI) => {
     title: <div className={staticClasses.Title}>Decky Recorder</div>,
     content: <Content serverAPI={serverApi} />,
     icon: <FaVideo />,
-    onDismount() {
-      serverApi.routerHook.removeRoute("/decky-recorder");
-    },
   };
 });
