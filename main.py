@@ -13,16 +13,27 @@ logging.basicConfig(filename="/tmp/template.log",
                     filemode='w+',
                     force=True)
 logger=logging.getLogger()
-logger.setLevel(logging.INFO) # can be changed to logging.DEBUG for debugging issues
+logger.setLevel(logging.DEBUG)
 
 class Plugin:
-    # A normal method. It can be called from JavaScript using call_plugin_function("method_1", argument1, argument2)
+
+    recording_process = None
+
     async def start_recording(self):
         logger.info("Starting recording")
-        p = subprocess.Popen("gst-launch-1.0 pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! filesink location=/home/deck/Videos/test.mp4 pulsesrc device=\"echo-cancel-sink.monitor\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0", shell=True)
-        time.sleep(3)
+        if self.recording_process is not None:
+            logger.info("Error: recording already started")
+            pass
+        self.recording_process = subprocess.Popen("gst-launch-1.0 pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! filesink location=/home/deck/Videos/test.mp4 pulsesrc device=\"echo-cancel-sink.monitor\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0", shell=True)
+        pass
+
+    async def end_recording(self):
         logger.info("Stopping recording")
-        p.send_signal(signal.SIGINT)
+        if self.recording_process is None:
+            logger.info("Error: No recording process to stop")
+            pass
+        self.recording_process.send_signal(signal.SIGINT)
+        self.recording_process = None
         pass
 
     # Asyncio-compatible long-running code, executed in a task when the plugin is loaded
@@ -33,4 +44,6 @@ class Plugin:
     # Function called first during the unload process, utilize this to handle your plugin being removed
     async def _unload(self):
         logger.info("Unloading...")
+        if self.recording_process is None:
+            Plugin.end_recording(self)
         pass

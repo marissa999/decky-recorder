@@ -7,25 +7,35 @@ import {
   staticClasses,
   Router,
 } from "decky-frontend-lib";
-import { VFC } from "react";
-import { FaShip } from "react-icons/fa";
+import { VFC, useState } from "react";
+import { FaShip, FaVideo } from "react-icons/fa";
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
-  const start_recording = async() => {
-    serverAPI.callPluginMethod('start_recording', {});
+  const [recordingStarted, setRecordingStarted] = useState(false);
+
+  const recordingButtonPress = async() => {
+    if (recordingStarted === false){
+      setRecordingStarted(true);
+      await serverAPI.callPluginMethod('start_recording', {});
+    } else {
+      setRecordingStarted(false);
+      await serverAPI.callPluginMethod('end_recording', {});
+    }
   }
 
   return (
     <PanelSection>
       <PanelSectionRow>
         <ButtonItem 
+          label="Recordings will be saved to ~/Videos"
+          bottomSeparator="none"
           layout="below"
           onClick={() => {
-            start_recording();
+            recordingButtonPress();
             Router.CloseSideMenus();
           }}>
-          Start recording
+          {recordingStarted === false ? "Start Recording" : "Stop Recording"}
         </ButtonItem>
       </PanelSectionRow>
     </PanelSection>
@@ -34,11 +44,11 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 export default definePlugin((serverApi: ServerAPI) => {
   return {
-    title: <div className={staticClasses.Title}>Example Plugin</div>,
+    title: <div className={staticClasses.Title}>Decky Recorder</div>,
     content: <Content serverAPI={serverApi} />,
-    icon: <FaShip />,
+    icon: <FaVideo />,
     onDismount() {
-      serverApi.routerHook.removeRoute("/decky-plugin-test");
+      serverApi.routerHook.removeRoute("/decky-recorder");
     },
   };
 });
