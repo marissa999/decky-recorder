@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import signal
+from datetime import datetime
 
 # append py_modules to PYTHONPATH
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/py_modules")
@@ -18,8 +19,7 @@ logger.setLevel(logging.DEBUG)
 std_out_file = open('/tmp/decky-recorder-std-out.log', 'w')
 std_err_file = open('/tmp/decky-recorder-std-err.log', 'w')
 
-PLUGINFOLDERPATH = os.path.dirname(os.path.realpath(__file__))
-DEPSPATH = PLUGINFOLDERPATH + "/deps"
+DEPSPATH = "/home/deck/.decky-recorder-deps"
 
 DEPSPLUGINSPATH = DEPSPATH + "/plugins"
 
@@ -39,13 +39,19 @@ class Plugin:
 		logger.info("Starting recording")
 		if self.recording_process is not None:
 			logger.info("Error: Already recording")
-			pass
+			return
+		os.environ["XDG_RUNTIME_DIR"] = "/run/user/1000"
+		os.environ["XDG_SESSION_TYPE"] = "wayland"
+		os.environ["HOME"] = "/home/deck"
 		# Heavily inspired by
 		# https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/record.go#L19
 		# https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/plugin/src/index.tsx#L161
-		cmd = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -vvv pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! filesink location=/home/deck/Videos/test.mp4 pulsesrc device=\"echo-cancel-sink.monitor\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(DEPSPLUGINSPATH, DEPSLIBSSPATH)
+		filename = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+		monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
+		cmd = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! filesink location=/home/deck/Videos/{}.mp4 pulsesrc device=\"{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(DEPSPLUGINSPATH, DEPSLIBSSPATH, filename, monitor)
 		logger.info("Launch command: " + cmd)
-		self.recording_process = subprocess.Popen("bash", "-c" "cmd", shell = True, stdout = std_out_file, stderr = std_err_file)
+		self.recording_process = subprocess.Popen(cmd, shell = True, stdout = std_out_file, stderr = std_err_file)
+		logger.info("Started recording!")
 		pass
 
 	async def end_recording(self):

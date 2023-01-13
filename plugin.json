@@ -3,7 +3,7 @@
   "author": "marissa999",
   "flags": ["debug", "_root"],
   "publish": {
-    "tags": ["template"],
+    "tags": ["Capture"],
     "description": "Record your games with Decky Recorder",
     "image": "https://opengraph.githubassets.com/1/marissa999/decky-recorder"
   }

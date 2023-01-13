@@ -22,10 +22,10 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	const recordingButtonPress = async() => {
 		if (recordingStarted === false){
 			setRecordingStarted(true);
-			await serverAPI.callPluginMethod('start_recording', {});
+			serverAPI.callPluginMethod('start_recording', {});
 		} else {
 			setRecordingStarted(false);
-			await serverAPI.callPluginMethod('end_recording', {});
+			serverAPI.callPluginMethod('end_recording', {});
 		}
 	}
 
