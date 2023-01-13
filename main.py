@@ -40,9 +40,12 @@ class Plugin:
 		if self.recording_process is not None:
 			logger.info("Error: Already recording")
 			pass
+		# Heavily inspired by
+		# https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/record.go#L19
+		# https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/plugin/src/index.tsx#L161
 		cmd = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -vvv pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! filesink location=/home/deck/Videos/test.mp4 pulsesrc device=\"echo-cancel-sink.monitor\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(DEPSPLUGINSPATH, DEPSLIBSSPATH)
 		logger.info("Launch command: " + cmd)
-		self.recording_process = subprocess.Popen(cmd, shell = True, stdout = std_out_file, stderr = std_err_file)
+		self.recording_process = subprocess.Popen("bash", "-c" "cmd", shell = True, stdout = std_out_file, stderr = std_err_file)
 		pass
 
 	async def end_recording(self):
@@ -56,6 +59,7 @@ class Plugin:
 
 	async def install_deps(self):
 		logger.info("Installing dependencies")
+		# Heavily inspired by https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/plugin/Makefile#L22
 		os.mkdir(DEPSPATH)
 		os.mkdir(DEPSPLUGINSPATH)
 		os.mkdir(VAAPIPATH)
@@ -63,12 +67,12 @@ class Plugin:
 		os.mkdir(GOODPATH)
 		os.mkdir(DEPSLIBSSPATH)
 		os.mkdir(BADPATH)
+		TMP_DEPS_PATH = "/tmp/deps"
+		os.mkdir(TMP_DEPS_PATH)
 		GST_VAAPI_DL = "https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.3/os/x86_64/gstreamer-vaapi-1.18.5-1-x86_64.pkg.tar.zst"
 		GST_PLUGIN_PIPEWIRE_DL = "https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.3/os/x86_64/gst-plugin-pipewire-1%3A0.3.44-1-x86_64.pkg.tar.zst"
 		GST_PLUGIN_BAD_LIBS_DL = "https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.3/os/x86_64/gst-plugins-bad-libs-1.18.5-5-x86_64.pkg.tar.zst"
 		GST_PLUGIN_GOOD_DL = "https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.3/os/x86_64/gst-plugins-good-1.18.5-2-x86_64.pkg.tar.zst"
-		TMP_DEPS_PATH = "/tmp/deps"
-		os.mkdir(TMP_DEPS_PATH)
 		VAAPIZSTPATH = TMP_DEPS_PATH + "/vaapi.pkg.tar.zst"
 		PIPEWIREZSTPATH = TMP_DEPS_PATH + "/pipewire.pkg.tar.zst"
 		BADLIBSZSTPATH = TMP_DEPS_PATH + "/bad-libs.pkg.tar.zst"
