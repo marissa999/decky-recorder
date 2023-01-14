@@ -4,38 +4,52 @@ import {
 	PanelSection,
 	PanelSectionRow,
 	ServerAPI,
-	staticClasses,
-	Router
+	staticClasses
 } from "decky-frontend-lib";
 
 import {
 	VFC, 
-	useState
+	useState,
+	useEffect
 } from "react";
 
 import { FaVideo } from "react-icons/fa";
 
-const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
+const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	const [recordingStarted, setRecordingStarted] = useState(false);
+	const [dependenciesInstalled, setDependenciesInstalled] = useState(false);
+
+	const initState = async () => {
+		const is_recording_response = await serverAPI.callPluginMethod('is_recording', {})
+		setRecordingStarted(is_recording_response.result as boolean);
+		const is_deps_installed_response = await serverAPI.callPluginMethod('check_if_deps_installed', {})
+		setDependenciesInstalled(is_deps_installed_response.result as boolean);
+	}
 
 	const recordingButtonPress = async() => {
 		if (recordingStarted === false){
 			setRecordingStarted(true);
-			serverAPI.callPluginMethod('start_recording', {});
+			await serverAPI.callPluginMethod('start_recording', {});
 		} else {
 			setRecordingStarted(false);
-			serverAPI.callPluginMethod('end_recording', {});
+			await serverAPI.callPluginMethod('end_recording', {});
 		}
 	}
 
 	const installDependencies = async() => {
 		await serverAPI.callPluginMethod('install_deps', {});
+		setDependenciesInstalled(true);
 	}
 
 	const uninstallDependencies = async() => {
 		await serverAPI.callPluginMethod('uninstall_deps', {});
+		setDependenciesInstalled(false);
 	}
+
+	useEffect(() => {
+		initState();
+	  }, []);
 
 	return (
 	<PanelSection>
@@ -43,9 +57,9 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 			<ButtonItem 
 				label="Recordings will be saved to ~/Videos"
 				layout="below"
+				disabled={!dependenciesInstalled}
 				onClick={() => {
 					recordingButtonPress();
-					Router.CloseSideMenus();
 				}}>
 				{recordingStarted === false ? "Start Recording" : "Stop Recording"}
 			</ButtonItem>
@@ -54,6 +68,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 			<ButtonItem 
 				label="Install needed dependencies"
 				layout="below"
+				disabled={dependenciesInstalled}
 				onClick={() => {
 					installDependencies();
 				}}>
@@ -65,6 +80,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 				label="Uninstall dependencies"
 				bottomSeparator="none"
 				layout="below"
+				disabled={!dependenciesInstalled}
 				onClick={() => {
 					uninstallDependencies();
 				}}>
@@ -78,7 +94,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 export default definePlugin((serverApi: ServerAPI) => {
 	return {
 		title: <div className={staticClasses.Title}>Decky Recorder</div>,
-		content: <Content serverAPI={serverApi} />,
+		content: <DeckyRecorder serverAPI={serverApi} />,
 		icon: <FaVideo />,
 	};
 });

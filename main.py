@@ -40,6 +40,9 @@ class Plugin:
 		if self.recording_process is not None:
 			logger.info("Error: Already recording")
 			return
+		if Plugin.check_if_deps_installed(self) == False:
+			logger.info("Error: Dependencies not installed")
+			return
 		os.environ["XDG_RUNTIME_DIR"] = "/run/user/1000"
 		os.environ["XDG_SESSION_TYPE"] = "wayland"
 		os.environ["HOME"] = "/home/deck"
@@ -62,6 +65,9 @@ class Plugin:
 		self.recording_process.send_signal(signal.SIGINT)
 		self.recording_process = None
 		pass
+
+	async def is_recording(self):
+		return self.recording_process is not None
 
 	async def install_deps(self):
 		logger.info("Installing dependencies")
