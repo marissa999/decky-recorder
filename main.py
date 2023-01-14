@@ -24,7 +24,7 @@ class Plugin:
 		filename = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
 		monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
 		cmd = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! filesink location=/home/deck/Videos/{}.mp4 pulsesrc device=\"{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(DEPSPLUGINSPATH, DEPSLIBSSPATH, filename, monitor)
-		self.recording_process = subprocess.Popen(cmd, shell = True, stdout = std_out_file, stderr = std_err_file)
+		self.recording_process = subprocess.Popen(cmd, shell = True)
 		return
 
 	async def end_recording(self):
