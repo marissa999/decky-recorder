@@ -32,4 +32,12 @@ cp $PWD/README.md $TMPDIR
 cp $PWD/plugin.json $TMPDIR
 cp $PWD/package.json $TMPDIR
 
-zip -r $PWD/Decky-Recorder.zip $TMPDIR
+ZIPFILE="$PWD/Decky-Recorder.zip"
+if [ -f "$ZIPFILE" ]; then
+    rm $ZIPFILE
+fi
+
+cd $TMPDIR
+zip -r $ZIPFILE *
+cd $PWD
+cp $ZIPFILE .
