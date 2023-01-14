@@ -7,11 +7,11 @@ from datetime import datetime
 # append py_modules to PYTHONPATH
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/py_modules")
 
-class Plugin:
+DEPSPATH = "/home/deck/homebrew/decky-recorder/backend/out"
+DEPSPLUGINSPATH = DEPSPATH + "/plugins"
+DEPSLIBSSPATH = DEPSPATH + "/libs"
 
-	DEPSPATH = "/home/deck/homebrew/decky-recorder/backend/out"
-	DEPSPLUGINSPATH = DEPSPATH + "/plugins"
-	DEPSLIBSSPATH = DEPSPATH + "/libs"
+class Plugin:
 
 	recording_process = None
 	deps_installed = False
