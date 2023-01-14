@@ -116,11 +116,13 @@ class Plugin:
 		os.system("cp {}/usr/lib/gstreamer-1.0/libgstisomp4.so {}".format(GOODUNTARPATH, GOODPATH))
 		os.system("cp {}/usr/lib/gstreamer-1.0/libgstpulseaudio.so {}".format(GOODUNTARPATH, GOODPATH))
 		os.system("cp {}/usr/lib/gstreamer-1.0/libgstlame.so {}".format(GOODUNTARPATH, GOODPATH))
+		logger.info("Dependencies installed")
 
 
 	async def uninstall_deps(self):
 		logger.info("Uninstalling dependencies")
 		os.system("rm -rf {}".format(DEPSPATH))
+		logger.info("Dependencies uninstalled")
 
 	async def check_if_deps_installed(self):
 		deps_installed = os.path.exists(DEPSPLUGINSPATH)
