@@ -29,6 +29,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		if (recordingStarted === false){
 			setRecordingStarted(true);
 			await serverAPI.callPluginMethod('start_recording', {});
+			Router.CloseSideMenus();
 		} else {
 			setRecordingStarted(false);
 			await serverAPI.callPluginMethod('end_recording', {});
@@ -47,7 +48,6 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 				layout="below"
 				onClick={() => {
 					recordingButtonPress();
-					Router.CloseSideMenus();
 				}}>
 				{recordingStarted === false ? "Start Recording" : "Stop Recording"}
 			</ButtonItem>

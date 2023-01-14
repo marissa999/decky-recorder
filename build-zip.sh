@@ -31,6 +31,7 @@ cp $PWD/LICENSE.md $TMPDIR
 cp $PWD/README.md $TMPDIR
 cp $PWD/plugin.json $TMPDIR
 cp $PWD/package.json $TMPDIR
+cp $PWD/main.py $TMPDIR
 
 ZIPFILE="$PWD/decky-recorder.zip"
 if [ -f "$ZIPFILE" ]; then
@@ -39,5 +40,3 @@ fi
 
 cd $TMPDIR
 zip -r $ZIPFILE *
-cd $PWD
-cp $ZIPFILE .
