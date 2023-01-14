@@ -1,6 +1,6 @@
 {
   "name": "decky-recorder",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Record your games with Decky Recorder",
   "scripts": {
     "prepare": "touch requirements.txt && pip3 install --upgrade -r requirements.txt -t py_modules",
