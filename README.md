@@ -15,6 +15,14 @@ Please do not judge my code, I am bad!
 
 This plugin is still in WIP.
 
+### Building
+If you want to build this plugin in theory you only need to run build-zip.sh. You will need the following:
+- npm
+- pnpm
+- Docker
+- zip
+I only tested this on Arch Linux (which I use, btw!)
+
 ### TODO:
 - Cleaning up the code... A lot!
 ### 
