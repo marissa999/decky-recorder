@@ -16,6 +16,8 @@ Please do not judge my code, I am bad!
 This plugin is still in WIP.
 
 ### TODO:
-
 - Cleaning up the code... A lot!
 ### 
+
+### Thanks
+Nameful (Telegram) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command
