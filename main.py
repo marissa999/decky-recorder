@@ -4,9 +4,6 @@ import subprocess
 import signal
 from datetime import datetime
 
-# append py_modules to PYTHONPATH
-sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/py_modules")
-
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/backend/out"
 DEPSPLUGINSPATH = DEPSPATH + "/plugins"
 DEPSLIBSSPATH = DEPSPATH + "/libs"
@@ -30,22 +27,22 @@ class Plugin:
 		cmd = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! filesink location=/home/deck/Videos/{}.mp4 pulsesrc device=\"{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(DEPSPLUGINSPATH, DEPSLIBSSPATH, filename, monitor)
 
 		self._recording_process = subprocess.Popen(cmd, shell = True)
-		pass
+		return
 
 	async def end_recording(self):
 		if Plugin.is_recording(self) == False:
 			return
 		self._recording_process.send_signal(signal.SIGINT)
 		self._recording_process = None
-		pass
+		return
 
 	async def is_recording(self):
 		return self._recording_process is not None
 
 	async def _main(self):
-		pass
+		return
 
 	async def _unload(self):
 		if Plugin.is_recording(self) == True:
 			Plugin.end_recording(self)
-		pass
+		return

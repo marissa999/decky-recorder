@@ -19,15 +19,16 @@ This plugin is still in WIP.
 If you want to build this plugin in theory you only need to run build-zip.sh. You will need the following:
 - npm
 - pnpm
+- python + pip
 - Docker
 - zip
 I only tested this on Arch Linux (which I use, btw!)
 
 ### TODO:
-- Cleaning up the code... A lot!
-### 
+- Figuring out why sometimes recording stutter/audio + video don't align. Might require re-transcoding with ffmpeg to re-align dts-stuff? Dunno
+- Exploring the possibility of setting up a background process for recording to a tmpfs, and adding a button to properly save the last 30 seconds
 
 ### Thanks
-Nameful (Telegram) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command
-Avery for the original Recapture Plugin
-Epictek for inspiring me to setup a proper build process (https://github.com/Epictek/DeckyStream I found out about this plugin when I was basically already done q.q)
+- Nameful (Telegram) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command
+- Avery for the original Recapture Plugin
+- Epictek for inspiring me to setup a proper build process (https://github.com/Epictek/DeckyStream I found out about this plugin when I was basically already done q.q)
