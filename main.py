@@ -9,6 +9,10 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/py_modules")
 
 class Plugin:
 
+	DEPSPATH = "/home/deck/homebrew/decky-recorder/backend/out"
+	DEPSPLUGINSPATH = DEPSPATH + "/plugins"
+	DEPSLIBSSPATH = DEPSPATH + "/libs"
+
 	recording_process = None
 	deps_installed = False
 
