@@ -29,6 +29,6 @@ I only tested this on Arch Linux (which I use, btw!)
 - Exploring the possibility of setting up a background process for recording to a tmpfs, and adding a button to properly save the last 30 seconds
 
 ### Thanks
-- Nameful (Telegram) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command
+- [@Newbytee](https://github.com/Newbytee) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command
 - Avery for the original Recapture Plugin
 - Epictek for inspiring me to setup a proper build process (https://github.com/Epictek/DeckyStream I found out about this plugin when I was basically already done q.q)
