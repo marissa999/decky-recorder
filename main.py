@@ -19,7 +19,7 @@ logger.setLevel(logging.DEBUG)
 std_out_file = open('/tmp/decky-recorder-std-out.log', 'w')
 std_err_file = open('/tmp/decky-recorder-std-err.log', 'w')
 
-DEPSPATH = "/home/deck/.decky-recorder-deps"
+DEPSPATH = "/home/deck/homebrew/decky-recorder/backend/out"
 
 DEPSPLUGINSPATH = DEPSPATH + "/plugins"
 
@@ -68,69 +68,6 @@ class Plugin:
 
 	async def is_recording(self):
 		return self.recording_process is not None
-
-	async def install_deps(self):
-		logger.info("Installing dependencies")
-		# Heavily inspired by https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/plugin/Makefile#L22
-		os.mkdir(DEPSPATH)
-		os.mkdir(DEPSPLUGINSPATH)
-		os.mkdir(VAAPIPATH)
-		os.mkdir(PIPEWIREPATH)
-		os.mkdir(GOODPATH)
-		os.mkdir(DEPSLIBSSPATH)
-		os.mkdir(BADPATH)
-		TMP_DEPS_PATH = "/tmp/deps"
-		os.mkdir(TMP_DEPS_PATH)
-		GST_VAAPI_DL = "https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.3/os/x86_64/gstreamer-vaapi-1.18.5-1-x86_64.pkg.tar.zst"
-		GST_PLUGIN_PIPEWIRE_DL = "https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.3/os/x86_64/gst-plugin-pipewire-1%3A0.3.44-1-x86_64.pkg.tar.zst"
-		GST_PLUGIN_BAD_LIBS_DL = "https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.3/os/x86_64/gst-plugins-bad-libs-1.18.5-5-x86_64.pkg.tar.zst"
-		GST_PLUGIN_GOOD_DL = "https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.3/os/x86_64/gst-plugins-good-1.18.5-2-x86_64.pkg.tar.zst"
-		VAAPIZSTPATH = TMP_DEPS_PATH + "/vaapi.pkg.tar.zst"
-		PIPEWIREZSTPATH = TMP_DEPS_PATH + "/pipewire.pkg.tar.zst"
-		BADLIBSZSTPATH = TMP_DEPS_PATH + "/bad-libs.pkg.tar.zst"
-		GOODZSTPATH = TMP_DEPS_PATH + "/good.pkg.tar.zst"
-		os.system("wget -O {} {}".format(VAAPIZSTPATH, GST_VAAPI_DL))
-		os.system("wget -O {} {}".format(PIPEWIREZSTPATH, GST_PLUGIN_PIPEWIRE_DL))
-		os.system("wget -O {} {}".format(BADLIBSZSTPATH, GST_PLUGIN_BAD_LIBS_DL))
-		os.system("wget -O {} {}".format(GOODZSTPATH, GST_PLUGIN_GOOD_DL))
-		VAAPIZSTUNTARPATH = TMP_DEPS_PATH + "/vaapi"
-		PIPEWIREUNTARPATH = TMP_DEPS_PATH + "/pipewire"
-		BADLIBSUNTARPATH = TMP_DEPS_PATH + "/bad"
-		GOODUNTARPATH = TMP_DEPS_PATH + "/good"
-		os.mkdir(VAAPIZSTUNTARPATH)
-		os.mkdir(PIPEWIREUNTARPATH)
-		os.mkdir(BADLIBSUNTARPATH)
-		os.mkdir(GOODUNTARPATH)
-		os.system("tar --use-compress-program=unzstd -xf {} -C {}".format(VAAPIZSTPATH, VAAPIZSTUNTARPATH))
-		os.system("tar --use-compress-program=unzstd -xf {} -C {}".format(PIPEWIREZSTPATH, PIPEWIREUNTARPATH))
-		os.system("tar --use-compress-program=unzstd -xf {} -C {}".format(BADLIBSZSTPATH, BADLIBSUNTARPATH))
-		os.system("tar --use-compress-program=unzstd -xf {} -C {}".format(GOODZSTPATH, GOODUNTARPATH))
-
-		os.system("cp {}/usr/lib/gstreamer-1.0/libgstvaapi.so {}".format(VAAPIZSTUNTARPATH, VAAPIPATH))
-
-		os.system("cp {}/usr/lib/gstreamer-1.0/libgstpipewire.so {}".format(PIPEWIREUNTARPATH, PIPEWIREPATH))
-
-		os.system("cp {}/usr/lib/libgstcodecparsers* {}".format(BADLIBSUNTARPATH, DEPSLIBSSPATH))
-		os.system("cp {}/usr/lib/gstreamer-1.0/libgstvideoparsersbad.so {}".format(BADLIBSUNTARPATH, BADPATH))
-
-		os.system("cp {}/usr/lib/gstreamer-1.0/libgstisomp4.so {}".format(GOODUNTARPATH, GOODPATH))
-		os.system("cp {}/usr/lib/gstreamer-1.0/libgstpulseaudio.so {}".format(GOODUNTARPATH, GOODPATH))
-		os.system("cp {}/usr/lib/gstreamer-1.0/libgstlame.so {}".format(GOODUNTARPATH, GOODPATH))
-		logger.info("Dependencies installed")
-
-
-	async def uninstall_deps(self):
-		logger.info("Uninstalling dependencies")
-		os.system("rm -rf {}".format(DEPSPATH))
-		logger.info("Dependencies uninstalled")
-
-	async def check_if_deps_installed(self):
-		deps_installed = os.path.exists(DEPSPLUGINSPATH)
-		if deps_installed:
-			logger.info("Dependencies already installed")
-		else:
-			logger.info("Dependencies not installed")
-		return deps_installed
 
 	async def _main(self):
 		logger.info("Loading...")

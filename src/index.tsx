@@ -4,7 +4,8 @@ import {
 	PanelSection,
 	PanelSectionRow,
 	ServerAPI,
-	staticClasses
+	staticClasses,
+	Router
 } from "decky-frontend-lib";
 
 import {
@@ -18,13 +19,10 @@ import { FaVideo } from "react-icons/fa";
 const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	const [recordingStarted, setRecordingStarted] = useState(false);
-	const [dependenciesInstalled, setDependenciesInstalled] = useState(false);
 
 	const initState = async () => {
 		const is_recording_response = await serverAPI.callPluginMethod('is_recording', {})
 		setRecordingStarted(is_recording_response.result as boolean);
-		const is_deps_installed_response = await serverAPI.callPluginMethod('check_if_deps_installed', {})
-		setDependenciesInstalled(is_deps_installed_response.result as boolean);
 	}
 
 	const recordingButtonPress = async() => {
@@ -37,16 +35,6 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		}
 	}
 
-	const installDependencies = async() => {
-		await serverAPI.callPluginMethod('install_deps', {});
-		setDependenciesInstalled(true);
-	}
-
-	const uninstallDependencies = async() => {
-		await serverAPI.callPluginMethod('uninstall_deps', {});
-		setDependenciesInstalled(false);
-	}
-
 	useEffect(() => {
 		initState();
 	  }, []);
@@ -57,34 +45,11 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 			<ButtonItem 
 				label="Recordings will be saved to ~/Videos"
 				layout="below"
-				disabled={!dependenciesInstalled}
 				onClick={() => {
 					recordingButtonPress();
+					Router.CloseSideMenus();
 				}}>
 				{recordingStarted === false ? "Start Recording" : "Stop Recording"}
-			</ButtonItem>
-		</PanelSectionRow>
-		<PanelSectionRow>
-			<ButtonItem 
-				label="Install needed dependencies"
-				layout="below"
-				disabled={dependenciesInstalled}
-				onClick={() => {
-					installDependencies();
-				}}>
-				Install needed dependencies
-			</ButtonItem>
-		</PanelSectionRow>
-		<PanelSectionRow>
-			<ButtonItem 
-				label="Uninstall dependencies"
-				bottomSeparator="none"
-				layout="below"
-				disabled={!dependenciesInstalled}
-				onClick={() => {
-					uninstallDependencies();
-				}}>
-				Uninstall dependencies
 			</ButtonItem>
 		</PanelSectionRow>
 	</PanelSection>
