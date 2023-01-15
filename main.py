@@ -22,6 +22,7 @@ class Plugin:
 
 	_recording_process = None
 	_mode = "localFile"
+	_mic = False
 
 	async def start_recording(self):
 		logger.info("Starting recording")
@@ -68,11 +69,19 @@ class Plugin:
 		logger.info("New mode: " + mode)
 		self._mode = mode
 
-	async def current_mode(self):
+	async def get_current_mode(self):
 		logger.info("Current mode: " + self._mode)
 		return self._mode
 
-	async def wlan_ip(self):
+	async def set_mic(self, mic):
+		logger.info("Set microphone: " + str(mic))
+		self._mic = mic
+
+	async def get_mic(self):
+		logger.info("Microhone: " + str(self._mic))
+		return self._mic
+
+	async def get_wlan_ip(self):
 		ip = subprocess.getoutput("ip -f inet addr show wlan0 | sed -En -e 's/.*inet ([0-9.]+).*/\\1/p'")
 		logger.info("IP: " + ip)
 		return ip

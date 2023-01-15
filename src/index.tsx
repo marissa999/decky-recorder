@@ -8,6 +8,7 @@ import {
 	Dropdown,
 	DropdownOption,
 	SingleDropdownOption,
+	ToggleField,
 	Router
 } from "decky-frontend-lib";
 
@@ -22,11 +23,11 @@ import { FaVideo } from "react-icons/fa";
 const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	const [recordingStarted, setRecordingStarted] = useState(false);
-
+	const [microphone, setMicrophone] = useState(false);
 	const [ip, setIp] = useState("127.0.0.1");
 
 	const modeOptionLocalFile = {data: "localFile", label: "Local File"} as SingleDropdownOption
-	const modeOptionRtsp = {data: "rtsp", label: "RTSP-Server (OBS)"} as SingleDropdownOption;
+	const modeOptionRtsp = {data: "rtsp", label: "Host RTSP-Server"} as SingleDropdownOption;
 	const modeOptions: DropdownOption[] = [modeOptionLocalFile, modeOptionRtsp];
 	const [currentMode, setCurrentMode] = useState(modeOptionLocalFile);
 
@@ -34,10 +35,13 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		const is_recording_response = await serverAPI.callPluginMethod('is_recording', {})
 		setRecordingStarted(is_recording_response.result as boolean);
 
-		const ip_response = await serverAPI.callPluginMethod('wlan_ip', {})
+		const ip_response = await serverAPI.callPluginMethod('get_wlan_ip', {})
 		setIp(ip_response.result as string);
 
-		const currentModeResponse = await serverAPI.callPluginMethod('current_mode', {})
+		const microphone_response = await serverAPI.callPluginMethod('get_mic', {})
+		setMicrophone(microphone_response.result as boolean);
+
+		const currentModeResponse = await serverAPI.callPluginMethod('get_current_mode', {})
 		const currentModeResponseString = currentModeResponse.result as string;
 		if (currentModeResponseString == modeOptionLocalFile.data){
 			setCurrentMode(modeOptionLocalFile)
@@ -68,9 +72,9 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		if (currentMode.data === modeOptionLocalFile.data){
 			return "Recordings will be saved to ~/Videos";
 		} else if (currentMode.data === modeOptionRtsp.data){
-			return "RTSP Stream will listen on " + ip + ":5000";
+			return "RTSP-Server will listen on " + ip + ":5000";
 		}
-		return "error?" + currentMode.data
+		return ""
 	}
 
 	const getButtonText = (): string => {
@@ -95,31 +99,46 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	}, []);
 
 	return (
-	<PanelSection>
-		<PanelSectionRow>
-			<ButtonItem 
-				label={getLabelText()}
-				layout="below"
-				onClick={() => {
-					recordingButtonPress();
-				}}>
-				{getButtonText()}
-			</ButtonItem>
-		</PanelSectionRow>
-		<PanelSectionRow>
-			<Dropdown
-				disabled={recordingStarted === true}
-				menuLabel="Select the mode you want use"
-				strDefaultLabel={strDefaultLabelText()}
-				rgOptions={modeOptions}
-				selectedOption={currentMode}
-				onChange={(newMode) => {
-					serverAPI.callPluginMethod('set_current_mode', {mode: newMode.data});
-					setCurrentMode(newMode);
-				}}
-			/>
-		</PanelSectionRow>
-	</PanelSection>
+		<PanelSection>
+			<PanelSectionRow>
+				<ButtonItem
+					label={getLabelText()}
+					bottomSeparator="none"
+					layout="below"
+					onClick={() => {
+						recordingButtonPress();
+					}}>
+					{getButtonText()}
+				</ButtonItem>
+			</PanelSectionRow>
+
+			<PanelSectionRow>
+				<ToggleField
+					disabled={recordingStarted === true}
+					label="Record Microphone"
+					bottomSeparator="none"
+					checked={microphone === true}
+					onChange={(newValue: boolean) => {
+						serverAPI.callPluginMethod('set_mic', {mic: newValue});
+						setMicrophone(newValue);
+					}}
+				/>
+			</PanelSectionRow>
+
+			<PanelSectionRow>
+				<Dropdown
+					disabled={recordingStarted === true}
+					menuLabel="Select the mode you want use"
+					strDefaultLabel={strDefaultLabelText()}
+					rgOptions={modeOptions}
+					selectedOption={currentMode}
+					onChange={(newMode) => {
+						serverAPI.callPluginMethod('set_current_mode', {mode: newMode.data});
+						setCurrentMode(newMode);
+					}}
+				/>
+			</PanelSectionRow>
+		</PanelSection>
 	);
 };
 
