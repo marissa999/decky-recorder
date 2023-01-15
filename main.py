@@ -30,11 +30,13 @@ class Plugin:
 		if Plugin.is_recording(self) == True:
 			logger.info("Error: Already recording")
 			return
+
 		os.environ["XDG_RUNTIME_DIR"] = "/run/user/1000"
 		os.environ["XDG_SESSION_TYPE"] = "wayland"
 		os.environ["HOME"] = "/home/deck"
 
-		cmd = ""
+		monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
+		cmd = None
 		if (self._mode == "localFile"):
 			filename = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
 			# Heavily inspired by
