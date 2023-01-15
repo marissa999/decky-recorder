@@ -9,14 +9,12 @@ DEPSPLUGINSPATH = DEPSPATH + "/plugins"
 DEPSLIBSSPATH = DEPSPATH + "/libs"
 
 import logging
-
 logging.basicConfig(filename="/tmp/decky-recorder.log",
 					format='Decky Recorder: %(asctime)s %(levelname)s %(message)s',
 					filemode='w+',
 					force=True)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
-
 std_out_file = open('/tmp/decky-recorder-std-out.log', 'w')
 std_err_file = open('/tmp/decky-recorder-std-err.log', 'w')
 
@@ -36,6 +34,7 @@ class Plugin:
 		os.environ["HOME"] = "/home/deck"
 
 		monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
+		
 		cmd = None
 		if (self._mode == "localFile"):
 			filename = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
@@ -43,7 +42,6 @@ class Plugin:
 			# https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/record.go#L19
 			# https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/plugin/src/index.tsx#L161
 			cmd = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! filesink location=/home/deck/Videos/{}.mp4 pulsesrc device=\"Recording_{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(DEPSPLUGINSPATH, DEPSLIBSSPATH, filename, monitor)
-
 		if (self._mode == "rtsp"):
 			cmd = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! rtpmp4vpay send-config=true ! udpsink host=127.0.0.1 port=5000 pulsesrc device=\"{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(DEPSPLUGINSPATH, DEPSLIBSSPATH, monitor)
 
