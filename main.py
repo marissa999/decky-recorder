@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 import signal
-import sleep
+import time
 from datetime import datetime
 
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/backend/out"
