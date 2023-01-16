@@ -8,7 +8,7 @@ from datetime import datetime
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/backend/out"
 DEPSPLUGINSPATH = DEPSPATH + "/plugins"
 DEPSLIBSSPATH = DEPSPATH + "/libs"
-TMPLOCATION = "/tmp/recording.mp4"
+TMPLOCATION = "/tmp"
 
 import logging
 logging.basicConfig(filename="/tmp/decky-recorder.log",
@@ -41,31 +41,32 @@ class Plugin:
 		start_command = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(DEPSPLUGINSPATH, DEPSLIBSSPATH)
 
 		videoPipeline = " pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink !"
-		adderPipeline = " adder name=audiomix ! audioconvert ! lamemp3enc target=bitrate bitrate=320 cbr=false ! sink.audio_0"
 
-		monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
-		monitorPipeline = " pulsesrc device=\"{}\" ! audiorate ! audioconvert ! audiomix.".format(monitor)
-
-		microphone = subprocess.getoutput("pactl get-default-source")
-		microphonePipeline = " pulsesrc device=\"{}\" ! audiorate ! audioconvert ! audiomix.".format(microphone)
-
-		cmd = None
+		cmd = start_command + videoPipeline
 		if (self._mode == "localFile"):
 			logger.info("Local File Recording")
-			self._filename = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+			self._filename = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + ".mp4"
 			# Heavily inspired by
 			# https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/record.go#L19
 			# https://git.sr.ht/~avery/recapture/tree/0fdbe014ec1f11bce386dc9468a760f8aed492e9/item/plugin/src/index.tsx#L161
-			fileSinkPipeline = " filesink location={}".format(TMPLOCATION)
-			cmd = start_command + videoPipeline + fileSinkPipeline + adderPipeline
+			fileSinkPipeline = " filesink location={}/{}".format(TMPLOCATION, self._filename)
+			cmd = cmd + fileSinkPipeline
 		if (self._mode == "rtsp"):
 			logger.info("RTSP-Server")
-			cmd = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink ! rtpmp4vpay send-config=true ! udpsink host=127.0.0.1 port=5000 pulsesrc device=\"{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(DEPSPLUGINSPATH, DEPSLIBSSPATH, monitor)
+			return
 
-		if (self._deckaudio):
-			cmd = cmd + monitorPipeline
-		if (self._mic):
-			cmd = cmd + microphonePipeline
+		if (self._deckaudio or self._mic):
+			adderPipeline = " adder name=audiomix ! audioconvert ! lamemp3enc target=bitrate bitrate=320 cbr=false ! sink.audio_0"
+			cmd = cmd + adderPipeline
+
+			if (self._deckaudio):
+				monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
+				monitorPipeline = " pulsesrc device=\"{}\" ! audiorate ! audioconvert ! audiomix.".format(monitor)
+				cmd = cmd + monitorPipeline
+			if (self._mic):
+				microphone = subprocess.getoutput("pactl get-default-source")
+				microphonePipeline = " pulsesrc device=\"{}\" ! audiorate ! audioconvert ! audiomix.".format(microphone)
+				cmd = cmd + microphonePipeline
 
 		logger.info("Command: " + cmd)
 		self._recording_process = subprocess.Popen(cmd, shell = True ,stdout = std_out_file, stderr = std_err_file)
@@ -79,22 +80,21 @@ class Plugin:
 			return
 		self._recording_process.send_signal(signal.SIGINT)
 		self._recording_process.wait()
+		time.sleep(5)
+		self._recording_process = None
 		logger.info("Recording stopped!")
 
 		# if recording was a local file
 		if (self._mode == "localFile"):
-			time.sleep(10)
 			logger.info("Repairing file")
-			permanent_location = "/home/deck/Videos/{}.mp4".format(self._filename)
-			logger.info("a")
-			ffmpegCmd = "ffmpeg -i {} -c copy {}".format(TMPLOCATION, permanent_location)
-			logger.info("a")
+			permanent_location = "/home/deck/Videos/Decky-Recorder_{}".format(self._filename)
+			ffmpegCmd = "ffmpeg -i {}/{} -c copy {}".format(TMPLOCATION, self._filename, permanent_location)
+			self._filename = None
 			logger.info("Command: " + ffmpegCmd)
 			ffmpeg = subprocess.Popen(ffmpegCmd, shell = True, stdout = std_out_file, stderr = std_err_file)
 			ffmpeg.wait()
-			self._filename = None
+			os.remove(TMPLOCATION)
 			logger.info("File repaired")
-		self._recording_process = None
 		return
 
 	async def is_recording(self):
@@ -122,13 +122,16 @@ class Plugin:
 		self._mic = mic
 
 	async def get_mic(self):
-		logger.info("Microhone: " + str(self._mic))
+		logger.info("Microphone: " + str(self._mic))
 		return self._mic
 
 	async def get_wlan_ip(self):
 		ip = subprocess.getoutput("ip -f inet addr show wlan0 | sed -En -e 's/.*inet ([0-9.]+).*/\\1/p'")
 		logger.info("IP: " + ip)
 		return ip
+
+	def write_config(self):
+		return
 
 	async def _main(self):
 		return

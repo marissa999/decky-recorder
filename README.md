@@ -24,9 +24,13 @@ If you want to build this plugin in theory you only need to run build-zip.sh. Yo
 - zip
 I only tested this on Arch Linux (which I use, btw!)
 
-### TODO:
+### TODO
 - Figuring out why sometimes recording stutter/audio + video don't align. Might require re-transcoding with ffmpeg to re-align dts-stuff? Dunno
 - Exploring the possibility of setting up a background process for recording to a tmpfs, and adding a button to properly save the last 30 seconds
+
+### Bugs
+- Pipewiresrc includes audio, therefore you cant disable the deck audio (enabling it doubles the volume)
+- No audio at all seems to crash the recording process?
 
 ### Thanks
 - [@Newbytee](https://github.com/Newbytee) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command

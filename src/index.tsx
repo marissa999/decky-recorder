@@ -118,7 +118,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 			<PanelSectionRow>
 				<ToggleField
-					disabled={recordingStarted === true}
+					disabled={true}
 					label="Record Deck Audio"
 					bottomSeparator="none"
 					checked={deckaudio === true}
@@ -144,7 +144,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 			<PanelSectionRow>
 				<Dropdown
-					disabled={recordingStarted === true}
+					disabled={true}
 					menuLabel="Select the mode you want use"
 					strDefaultLabel={strDefaultLabelText()}
 					rgOptions={modeOptions}
