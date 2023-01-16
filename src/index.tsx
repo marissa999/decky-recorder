@@ -23,6 +23,7 @@ import { FaVideo } from "react-icons/fa";
 const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	const [recordingStarted, setRecordingStarted] = useState(false);
+	const [deckaudio, setDeckaudio] = useState(true);
 	const [microphone, setMicrophone] = useState(false);
 	const [ip, setIp] = useState("127.0.0.1");
 
@@ -37,6 +38,9 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 		const ip_response = await serverAPI.callPluginMethod('get_wlan_ip', {})
 		setIp(ip_response.result as string);
+
+		const deckaudio_response = await serverAPI.callPluginMethod('get_deckaudio', {})
+		setDeckaudio(deckaudio_response.result as boolean);
 
 		const microphone_response = await serverAPI.callPluginMethod('get_mic', {})
 		setMicrophone(microphone_response.result as boolean);
@@ -110,6 +114,19 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 					}}>
 					{getButtonText()}
 				</ButtonItem>
+			</PanelSectionRow>
+
+			<PanelSectionRow>
+				<ToggleField
+					disabled={recordingStarted === true}
+					label="Record Deck Audio"
+					bottomSeparator="none"
+					checked={deckaudio === true}
+					onChange={(newValue: boolean) => {
+						serverAPI.callPluginMethod('set_deckaudio', {deckaudio: newValue});
+						setDeckaudio(newValue);
+					}}
+				/>
 			</PanelSectionRow>
 
 			<PanelSectionRow>
