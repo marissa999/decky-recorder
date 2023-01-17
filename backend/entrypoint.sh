@@ -1,7 +1,10 @@
 #!/bin/sh
 set -e
 
-rm -rf /backend/out
+OUTDIR="/backend/out"
+if [ -d "$OUTDIR" ]; then
+    sudo rm -rf $OUTDIR
+fi
 
 cd /backend
 
