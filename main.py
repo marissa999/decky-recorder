@@ -77,9 +77,11 @@ class Plugin:
 		if Plugin.is_recording(self) == False:
 			logger.info("Error: No recording process to stop")
 			return
+		logger.info("Sending sigin")
 		self._recording_process.send_signal(signal.SIGINT)
+		logger.info("Sigin sent. Waiting...")
 		self._recording_process.wait()
-		time.sleep(10)
+		logger.info("Waiting finished")
 		self._recording_process = None
 		logger.info("Recording stopped!")
 
