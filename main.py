@@ -6,8 +6,7 @@ import time
 from datetime import datetime
 
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/backend/out"
-DEPSPLUGINSPATH = DEPSPATH + "/plugins"
-DEPSLIBSSPATH = DEPSPATH + "/libs"
+GSTPLUGINSPATH = DEPSPATH + "/gstreamer-1.0"
 TMPLOCATION = "/tmp"
 
 import logging
@@ -38,7 +37,7 @@ class Plugin:
 		os.environ["XDG_SESSION_TYPE"] = "wayland"
 		os.environ["HOME"] = "/home/deck"
 
-		start_command = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(DEPSPLUGINSPATH, DEPSLIBSSPATH)
+		start_command = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(GSTPLUGINSPATH, DEPSPATH)
 
 		videoPipeline = " pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink !"
 
@@ -80,21 +79,23 @@ class Plugin:
 			return
 		self._recording_process.send_signal(signal.SIGINT)
 		self._recording_process.wait()
-		time.sleep(5)
+		time.sleep(10)
 		self._recording_process = None
 		logger.info("Recording stopped!")
 
 		# if recording was a local file
 		if (self._mode == "localFile"):
 			logger.info("Repairing file")
+			tmpFilePath = "{}/{}".format(TMPLOCATION, self._filename)
 			permanent_location = "/home/deck/Videos/Decky-Recorder_{}".format(self._filename)
-			ffmpegCmd = "ffmpeg -i {}/{} -c copy {}".format(TMPLOCATION, self._filename, permanent_location)
 			self._filename = None
+			ffmpegCmd = "ffmpeg -i {} -c copy {}".format(tmpFilePath, permanent_location)
 			logger.info("Command: " + ffmpegCmd)
 			ffmpeg = subprocess.Popen(ffmpegCmd, shell = True, stdout = std_out_file, stderr = std_err_file)
 			ffmpeg.wait()
-			os.remove(TMPLOCATION)
 			logger.info("File repaired")
+			os.remove(tmpFilePath)
+			logger.info("Tmpfile deleted")
 		return
 
 	async def is_recording(self):
