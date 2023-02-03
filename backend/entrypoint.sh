@@ -2,9 +2,7 @@
 set -e
 
 OUTDIR="/backend/out"
-if [ -d "$OUTDIR" ]; then
-    sudo rm -rf $OUTDIR
-fi
+
 
 cd /backend
 
