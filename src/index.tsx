@@ -5,7 +5,6 @@ import {
 	PanelSectionRow,
 	ServerAPI,
 	staticClasses,
-	ToggleField,
 	Router
 } from "decky-frontend-lib";
 
@@ -20,15 +19,10 @@ import { FaVideo } from "react-icons/fa";
 const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	const [recordingStarted, setRecordingStarted] = useState(false);
-	const [microphone, setMicrophone] = useState(false);
 
 	const initState = async () => {
 		const is_recording_response = await serverAPI.callPluginMethod('is_recording', {})
 		setRecordingStarted(is_recording_response.result as boolean);
-
-		const microphone_response = await serverAPI.callPluginMethod('get_mic', {})
-		setMicrophone(microphone_response.result as boolean);
-
 	}
 
 	const recordingButtonPress = async() => {
@@ -70,18 +64,6 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 					}}>
 					{getButtonText()}
 				</ButtonItem>
-			</PanelSectionRow>
-			<PanelSectionRow>
-				<ToggleField
-					disabled={recordingStarted === true}
-					label="Record Microphone"
-					bottomSeparator="none"
-					checked={microphone === true}
-					onChange={(newValue: boolean) => {
-						serverAPI.callPluginMethod('set_mic', {mic: newValue});
-						setMicrophone(newValue);
-					}}
-				/>
 			</PanelSectionRow>
 		</PanelSection>
 	);
