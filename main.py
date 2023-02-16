@@ -50,7 +50,7 @@ class Plugin:
 			return
 
 		monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
-		cmd = cmd + " pulsesrc device=\"Recording_{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(monitor)"
+		cmd = cmd + " pulsesrc device=\"Recording_{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(monitor)
 
 		logger.info("Command: " + cmd)
 		self._recording_process = subprocess.Popen(cmd, shell = True, stdout = std_out_file, stderr = std_err_file)
