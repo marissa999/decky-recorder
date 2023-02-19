@@ -1,7 +1,7 @@
 {
   "name": "decky-recorder",
-  "version": "0.0.3",
-  "description": "Record your games with Decky Recorder",
+  "version": "0.0.4",
+  "description": "This plugin allows you to make screencaptures directly on the Steam Deck, without an external capture card!",
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",
     "watch": "rollup -c -w",
@@ -39,7 +39,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "decky-frontend-lib": "^3.18.9",
+    "decky-frontend-lib": "^3.18.11",
     "react-icons": "^4.4.0"
   },
   "pnpm": {
