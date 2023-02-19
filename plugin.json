@@ -5,6 +5,6 @@
   "publish": {
     "tags": ["Capture"],
     "description": "Record your games with Decky Recorder",
-    "image": "https://opengraph.githubassets.com/1/marissa999/decky-recorder"
+    "image": "https://github.com/marissa999/decky-recorder/raw/main/decky-recorder-screenshot.jpg"
   }
 }
