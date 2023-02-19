@@ -22,10 +22,13 @@ std_err_file = open('/tmp/decky-recorder-std-err.log', 'w')
 class Plugin:
 
 	_recording_process = None
+
+	_tmpFilepath: str = None
+	_filepath: str = None
+
 	_mode: str = "localFile"
 	_audioBitrate: int = 128
 	_localFilePath: str = "/home/deck/Videos"
-	_filename: str = None
 	_fileformat: str = "mp4"
 
 	# Starts the capturing process
@@ -49,8 +52,10 @@ class Plugin:
 		# If mode is localFile
 		if (self._mode == "localFile"):
 			logger.info("Local File Recording")
-			self._filename = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + ".mp4"
-			fileSinkPipeline = " filesink location={}/{}".format(TMPLOCATION, self._filename)
+			dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+			self._tmpFilepath = "{}/Decky-Recorder_{}.mp4".format(TMPLOCATION, dateTime)
+			self._filepath = "{}/Decky-Recorder_{}.{}".format(self._localFilePath, dateTime, self._fileformat)
+			fileSinkPipeline = " filesink location={}".format(self._tmpFilepath)
 			cmd = cmd + fileSinkPipeline
 		else:
 			logger.info("Mode {} does not exist".format(self._mode))
@@ -83,15 +88,14 @@ class Plugin:
 		# if recording was a local file
 		if (self._mode == "localFile"):
 			logger.info("Repairing file")
-			tmpFilePath = "{}/{}".format(TMPLOCATION, self._filename)
-			permanent_location = "{}/Decky-Recorder_{}".format(self._localFilePath ,self._filename)
-			self._filename = None
-			ffmpegCmd = "ffmpeg -i {} -c copy {}".format(tmpFilePath, permanent_location)
+			ffmpegCmd = "ffmpeg -i {} -c copy {}".format(self._tmpFilepath, self._filepath)
 			logger.info("Command: " + ffmpegCmd)
+			self._tmpFilepath = None
+			self._filepath = None
 			ffmpeg = subprocess.Popen(ffmpegCmd, shell = True, stdout = std_out_file, stderr = std_err_file)
 			ffmpeg.wait()
-			logger.info("File repaired")
-			os.remove(tmpFilePath)
+			logger.info("File copied with ffmpeg")
+			os.remove(self._tmpFilepath)
 			logger.info("Tmpfile deleted")
 		return
 
@@ -131,8 +135,8 @@ class Plugin:
 		return self._localFilePath
 
 	# Sets local file format
-	async def set_local_fileformat(self, _fileformat: str):
-		logger.info("New local file format: " + _fileformat)
+	async def set_local_fileformat(self, fileformat: str):
+		logger.info("New local file format: " + fileformat)
 		self._fileformat = fileformat
 
 	# Gets the file format
@@ -146,7 +150,7 @@ class Plugin:
 		self._mode = "localFile"
 		self._audioBitrate = 128
 		self._localFilePath = "/home/deck/Videos"
-		self._fileformat = "/home/deck/Videos"
+		self._fileformat = "mp4"
 		return
 
 	async def saveConfig(self):
