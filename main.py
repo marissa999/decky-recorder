@@ -2,7 +2,6 @@ import os
 import sys
 import subprocess
 import signal
-import time
 from datetime import datetime
 
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/bin"
@@ -23,18 +22,14 @@ class Plugin:
 
 	_recording_process = None
 
+	_mode: str = "localFile"
 	_tmpFilepath: str = None
 	_filepath: str = None
 
-	_mode: str = "localFile"
-	_audioBitrate: int = 128
-	_localFilePath: str = "/home/deck/Videos"
-	_fileformat: str = "mp4"
-
-	# Starts the capturing process
-	async def start_capturing(self):
+	# Starts the recording process
+	async def start_recording(self, mode: str, localFilePath: str, fileformat: str):
 		logger.info("Starting recording")
-		if Plugin.is_capturing(self) == True:
+		if self._recording_process is not None:
 			logger.info("Error: Already recording")
 			return
 
@@ -49,37 +44,38 @@ class Plugin:
 		videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink !"
 		cmd = "{} {}".format(start_command, videoPipeline)
 
+		self._mode = mode
 		# If mode is localFile
 		if (self._mode == "localFile"):
 			logger.info("Local File Recording")
 			dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
 			self._tmpFilepath = "{}/Decky-Recorder_{}.mp4".format(TMPLOCATION, dateTime)
-			self._filepath = "{}/Decky-Recorder_{}.{}".format(self._localFilePath, dateTime, self._fileformat)
+			self._filepath = "{}/Decky-Recorder_{}.{}".format(localFilePath, dateTime, fileformat)
 			fileSinkPipeline = " filesink location={}".format(self._tmpFilepath)
 			cmd = cmd + fileSinkPipeline
 		else:
-			logger.info("Mode {} does not exist".format(self._mode))
+			logger.info("Mode {} does not exist".format(mode))
 			return
 
 		# Creates audio pipeline
 		monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
-		cmd = cmd + " pulsesrc device=\"Recording_{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate={} cbr=true ! sink.audio_0".format(monitor, self._audioBitrate)
+		cmd = cmd + " pulsesrc device=\"Recording_{}\" ! audioconvert ! lamemp3enc target=bitrate bitrate=128 cbr=true ! sink.audio_0".format(monitor)
 
-		# Starts the capture process
+		# Starts the recorde process
 		logger.info("Command: " + cmd)
 		self._recording_process = subprocess.Popen(cmd, shell = True, stdout = std_out_file, stderr = std_err_file)
 		logger.info("Recording started!")
 		return
 
-	# Stops the capturing process and cleans up if the mode requires
-	async def stop_capturing(self):
+	# Stops the recording process and cleans up if the mode requires
+	async def stop_recording(self):
 		logger.info("Stopping recording")
-		if Plugin.is_capturing(self) == False:
+		if self._recording_process is None:
 			logger.info("Error: No recording process to stop")
 			return
-		logger.info("Sending sigin")
+		logger.info("Sending sigint")
 		self._recording_process.send_signal(signal.SIGINT)
-		logger.info("Sigin sent. Waiting...")
+		logger.info("Sigint sent. Waiting...")
 		self._recording_process.wait()
 		logger.info("Waiting finished")
 		self._recording_process = None
@@ -99,71 +95,11 @@ class Plugin:
 			logger.info("Tmpfile deleted")
 		return
 
-	# Returns true if the plugin is currently capturing
-	async def is_capturing(self):
-		logger.info("Is capturing? " + str(self._recording_process is not None))
-		return self._recording_process is not None
-
-	# Sets the current mode, supported modes are: localFile
-	async def set_current_mode(self, mode: str):
-		logger.info("New mode: " + mode)
-		self._mode = mode
-
-	# Gets the current mode
-	async def get_current_mode(self):
-		logger.info("Current mode: " + self._mode)
-		return self._mode
-
-	# Sets audio bitrate
-	async def set_audio_bitrate(self, aduioBitrate: int):
-		logger.info("New audio bitrate: " + aduioBitrate)
-		self._audioBitrate = aduioBitrate
-
-	# Gets the audio bitrate
-	async def get_audio_bitrate(self):
-		logger.info("Current audio bitrate: " + self._audioBitrate)
-		return self._audioBitrate
-
-	# Sets local FilePath
-	async def set_local_filepath(self, localFilePath: str):
-		logger.info("New local filepath: " + localFilePath)
-		self._localFilePath = localFilePath
-
-	# Gets the local FilePath
-	async def get_local_filepath(self):
-		logger.info("Current local filepath: " + self._localFilePath)
-		return self._localFilePath
-
-	# Sets local file format
-	async def set_local_fileformat(self, fileformat: str):
-		logger.info("New local file format: " + fileformat)
-		self._fileformat = fileformat
-
-	# Gets the file format
-	async def get_local_fileformat(self):
-		logger.info("Current local file format: " + self._fileformat)
-		return self._fileformat
-
-	async def loadConfig(self):
-		logger.info("Loading config")
-		### TODO: IMPLEMENT ###
-		self._mode = "localFile"
-		self._audioBitrate = 128
-		self._localFilePath = "/home/deck/Videos"
-		self._fileformat = "mp4"
-		return
-
-	async def saveConfig(self):
-		logger.info("Saving config")
-		### TODO: IMPLEMENT ###
-		return
-
 	async def _main(self):
-		await Plugin.loadConfig(self)
 		return
 
 	async def _unload(self):
-		if Plugin.is_capturing(self) == True:
+		if self._recording_process is not None:
 			await Plugin.end_recording(self)
 		await Plugin.saveConfig(self)
 		return

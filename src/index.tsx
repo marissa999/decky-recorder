@@ -7,93 +7,50 @@ import {
 	staticClasses,
 	Dropdown,
 	DropdownOption,
-	SingleDropdownOption,
 	Router
 } from "decky-frontend-lib";
 
 import {
 	VFC, 
 	useState,
-	useEffect
 } from "react";
 
 import { FaVideo } from "react-icons/fa";
 
 const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
-	const [isCapturing, setCapturing] = useState<boolean>(false);
+	const [isRecording, setRecording] = useState<boolean>(false);
 
 	const [mode, setMode] = useState<string>("localFile");
 
-	const audioBitrateOption128 = {data: "128", label: "128 Kbps"} as SingleDropdownOption
-	const audioBitrateOption192 = {data: "192", label: "192 Kbps"} as SingleDropdownOption
-	const audioBitrateOption256 = {data: "256", label: "256 Kbps"} as SingleDropdownOption
-	const audioBitrateOption320 = {data: "320", label: "320 Kbps"} as SingleDropdownOption
+	const audioBitrateOption128 = {data: "128", label: "128 Kbps"} as DropdownOption
+	const audioBitrateOption192 = {data: "192", label: "192 Kbps"} as DropdownOption
+	const audioBitrateOption256 = {data: "256", label: "256 Kbps"} as DropdownOption
+	const audioBitrateOption320 = {data: "320", label: "320 Kbps"} as DropdownOption
 	const audioBitrateOptions: DropdownOption[] = [audioBitrateOption128, 
 		audioBitrateOption192, audioBitrateOption256, audioBitrateOption320];
 	const [audioBitrate, setAudioBitrate] = useState<DropdownOption>(audioBitrateOption128);
 
 	const [localFilePath, setLocalFilePath] = useState<string>("/home/deck/Videos");
 
-	const formatOptionMp4 = {data: "mp4", label: "MP4"} as SingleDropdownOption
-	const formatOptionMkv = {data: "mkv", label: "Matroska (.mkv)"} as SingleDropdownOption;
-	const formatOptionMov = {data: "mov", label: "QuickTime (.mov)"} as SingleDropdownOption;
+	const formatOptionMp4 = {data: "mp4", label: "MP4"} as DropdownOption
+	const formatOptionMkv = {data: "mkv", label: "Matroska (.mkv)"} as DropdownOption;
+	const formatOptionMov = {data: "mov", label: "QuickTime (.mov)"} as DropdownOption;
 	const formatOptions: DropdownOption[] = [formatOptionMp4, formatOptionMkv, formatOptionMov];
 	const [localFileFormat, setLocalFileFormat] = useState<DropdownOption>(formatOptionMp4);
 
-	const initState = async () => {
-		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_capturing', {});
-		setCapturing(getIsCapturingResponse.result as boolean);
-
-		const getModeResponse = await serverAPI.callPluginMethod('get_current_mode', {});
-		setMode(getModeResponse.result as string);
-
-		const getAudioBitrateResponse = await serverAPI.callPluginMethod('get_audio_bitrate', {});
-		const audioBitrateResponseNumber: number = getAudioBitrateResponse.result as number;
-		switch (audioBitrateResponseNumber) {
-			case 128:
-				setAudioBitrate(audioBitrateOption128);
-				break;
-			case 192:
-				setAudioBitrate(audioBitrateOption192)
-				break;
-			case 256:
-				setAudioBitrate(audioBitrateOption256)
-				break;
-			case 320:
-				setAudioBitrate(audioBitrateOption320)
-				break;
-			default:
-				setAudioBitrate(audioBitrateOption128)
-				break;
-		} 
-		
-		const getLocalFilepathResponse = await serverAPI.callPluginMethod('get_local_filepath', {})
-		setLocalFilePath(getLocalFilepathResponse.result as string);
-
-		const getLocalFileFormatResponse = await serverAPI.callPluginMethod('get_local_fileformat', {})
-		const localFileFormatResponseString: string = getLocalFileFormatResponse.result as string;
-		if (localFileFormatResponseString == "mp4") {
-			setLocalFileFormat(formatOptionMp4)
-		} else if (localFileFormatResponseString == "mkv") {
-			setLocalFileFormat(formatOptionMkv)
-		} else if (localFileFormatResponseString == "mov") {
-			setLocalFileFormat(formatOptionMov)
-		} else {
-			// should never happen? default back to mp4
-			setLocalFileFormat(formatOptionMp4)
-		}
-
-	}
-
 	const recordingButtonPress = async() => {
-		if (isCapturing === false){
-			setCapturing(true);
-			await serverAPI.callPluginMethod('start_capturing', {});
+		if (isRecording === false){
+			setRecording(true);
+			await serverAPI.callPluginMethod('start_recording', {
+				"mode": mode, 
+				"localFilePath": localFilePath,
+				"fileformat": localFileFormat.data
+			});
 			Router.CloseSideMenus();
 		} else {
-			setCapturing(false);
-			await serverAPI.callPluginMethod('stop_capturing', {});
+			setRecording(false);
+			await serverAPI.callPluginMethod('stop_recording', {});
 		}
 	}
 
@@ -102,16 +59,12 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	}
 
 	const getButtonText = (): string => {
-		if (isCapturing === false){
+		if (isRecording === false){
 			return "Start Recording";
 		} else {
 			return "Stop Recording";
 		}
 	}
-
-	useEffect(() => {
-		initState();
-	}, []);
 
 	return (
 		<PanelSection>
@@ -129,12 +82,12 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 			<PanelSectionRow>
 				<Dropdown
+					disabled={isRecording}
 					menuLabel="Select the video file format"
 					strDefaultLabel={localFileFormat.label as string}
 					rgOptions={formatOptions}
 					selectedOption={localFileFormat}
 					onChange={(newLocalFileFormat) => {
-						serverAPI.callPluginMethod('set_local_fileformat', {fileformat: newLocalFileFormat.data});
 						setLocalFileFormat(newLocalFileFormat);
 					}}
 				/>
@@ -149,5 +102,9 @@ export default definePlugin((serverApi: ServerAPI) => {
 		title: <div className={staticClasses.Title}>Decky Recorder</div>,
 		content: <DeckyRecorder serverAPI={serverApi} />,
 		icon: <FaVideo />,
+		alwaysRender: true,
+		onDismount() {
+			serverApi.callPluginMethod('stop_recording', {});
+		},
 	};
 });
