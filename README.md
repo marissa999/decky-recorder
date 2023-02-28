@@ -34,10 +34,6 @@ I only tested this on Arch Linux (which I use, btw!)
 - WIP: Finishing RTSP-Server-Sink (Current state: UI is done, I should have all libraries? I think? And if not I can easily add missing libraries. But... What is the actual pipeline that I need?)
 - Exploring the possibility of setting up a background process for recording to a tmpfs, and adding a button to properly save the last 30 seconds
 
-### Bugs
-- Pipewiresrc includes audio, therefore you cant disable the deck audio (enabling it doubles the volume)
-- No audio at all seems to crash the recording process?
-
 ### Thanks
 - [@Newbytee](https://github.com/Newbytee) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command
 - Avery for the original Recapture Plugin
