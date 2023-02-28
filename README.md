@@ -17,7 +17,7 @@ This plugin is still in WIP.
 
 ### Known issues
 - It seems like long recordings (over 30 minutes) dont get saved (https://github.com/marissa999/decky-recorder/issues/2#issuecomment-1445399044)
-- It seems starting a recording while docked causes the Deck to crash (https://github.com/marissa999/decky-recorder/issues/8)
+- It seems like starting a recording while docked and outputting to a 4k monitor causes the Deck to crash (https://github.com/marissa999/decky-recorder/issues/8)
 
 ### Building
 If you want to build this plugin in theory you only need to run build-zip.sh. You will need the following:
