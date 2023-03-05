@@ -49,7 +49,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		setCapturing(getIsCapturingResponse.result as boolean);
 
 		const getIsRollingResponse = await serverAPI.callPluginMethod('is_rolling', {});
-		setCapturing(getIsRollingResponse.result as boolean);
+		setRolling(getIsRollingResponse.result as boolean);
 
 		const getModeResponse = await serverAPI.callPluginMethod('get_current_mode', {});
 		setMode(getModeResponse.result as string);
@@ -157,12 +157,12 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                                 />
                         </PanelSectionRow>
 
-                        {/* <PanelSectionRow><ToggleField
+                        <PanelSectionRow><ToggleField
                         label="Do Rolling Recording?"
                         checked={isRolling}
                         onChange={(e)=>{setRolling(e); rollingToggled();}}
                         />
-                        </PanelSectionRow> */}
+                        </PanelSectionRow>
 
                         {(isRolling)
                         ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 30 Seconds</ButtonItem></PanelSectionRow> : null }
