@@ -48,6 +48,9 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_capturing', {});
 		setCapturing(getIsCapturingResponse.result as boolean);
 
+		const getIsRollingResponse = await serverAPI.callPluginMethod('is_rolling', {});
+		setCapturing(getIsRollingResponse.result as boolean);
+
 		const getModeResponse = await serverAPI.callPluginMethod('get_current_mode', {});
 		setMode(getModeResponse.result as string);
 
@@ -100,6 +103,16 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		}
 	}
 
+	const rollingToggled = async () => {
+		if (isRolling === false) {
+			setRolling(true);
+			await serverAPI.callPluginMethod('enable_rolling', {});
+		} else {
+			setRolling(false);
+			await serverAPI.callPluginMethod('disable_rolling', {});
+		}
+	}
+
 	const getLabelText = (): string => {
 		return "Recordings will be saved to " + localFilePath;
 	}
@@ -147,21 +160,21 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                         <PanelSectionRow><ToggleField
                         label="Do Rolling Recording?"
                         checked={isRolling}
-                        onChange={(e)=>setRolling(e)}
+                        onChange={(e)=>{setRolling(e); rollingToggled();}}
                         />
                         </PanelSectionRow>
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!this.isCapturing}>Save 30 Seconds</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 30 Seconds</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!this.isCapturing}>Save 1 minute</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 1 minute</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!this.isCapturing}>Save 2 minutes</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 2 minutes</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!this.isCapturing}>Save 5 minutes</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 5 minutes</ButtonItem></PanelSectionRow> : null }
 
                 </PanelSection>
         );

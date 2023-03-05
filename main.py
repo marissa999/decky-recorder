@@ -4,6 +4,7 @@ import subprocess
 import signal
 import time
 from datetime import datetime
+import traceback
 
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/bin"
 GSTPLUGINSPATH = DEPSPATH + "/gstreamer-1.0"
@@ -22,9 +23,6 @@ logger.setLevel(logging.DEBUG)
 std_out_file = open("/tmp/decky-recorder-std-out.log", "w")
 std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
 
-is_rolling = False
-
-
 class Plugin:
 
     _recording_process = None
@@ -36,69 +34,77 @@ class Plugin:
     _audioBitrate: int = 128
     _localFilePath: str = "/home/deck/Videos"
     _fileformat: str = "mp4"
+    _rolling: bool = False
 
     # Starts the capturing process
     async def start_capturing(self):
-        logger.info("Starting recording")
-        if Plugin.is_capturing(self) == True:
-            logger.info("Error: Already recording")
-            return
+        try:
+            logger.info("Starting recording")
+            if Plugin.is_capturing(self) == True:
+                logger.info("Error: Already recording")
+                return
 
-        os.environ["XDG_RUNTIME_DIR"] = "/run/user/1000"
-        os.environ["XDG_SESSION_TYPE"] = "wayland"
-        os.environ["HOME"] = "/home/deck"
+            os.environ["XDG_RUNTIME_DIR"] = "/run/user/1000"
+            os.environ["XDG_SESSION_TYPE"] = "wayland"
+            os.environ["HOME"] = "/home/deck"
 
-        # Start command including plugin path and ld_lib path
-        start_command = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(
-            GSTPLUGINSPATH, DEPSPATH
-        )
+            # Start command including plugin path and ld_lib path
+            start_command = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(
+                GSTPLUGINSPATH, DEPSPATH
+            )
 
-        # Video Pipeline
-        if not is_rolling:
-            videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink !"
-        else:
-            videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
+            # Video Pipeline
+            if not self._rolling:
+                videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink !"
+            else:
+                videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
+
             cmd = "{} {}".format(start_command, videoPipeline)
 
-        # If mode is localFile
-        if self._mode == "localFile":
-            logger.info("Local File Recording")
-            dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-            if not is_rolling:
-                self._tmpFilepath = "{}/Decky-Recorder_{}.mp4".format(
-                    TMPLOCATION, dateTime
-                )
+            # If mode is localFile
+            if self._mode == "localFile":
+                logger.info("Local File Recording")
+                dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+                if not self._rolling:
+                    logger.info("Setting tmp filepath no rolling")
+                    self._tmpFilepath = "{}/Decky-Recorder_{}.mp4".format(
+                        TMPLOCATION, dateTime
+                    )
+                else:
+                    logger.info("Setting tmp filepath")
+                    self._tmpFilepath = "{}/Decky-Recorder-Rolling_%02d.mp4".format(TMPLOCATION)
+                if not self._rolling:
+                    logger.info("Setting local filepath no rolling")
+                    self._filepath = "{}/Decky-Recorder_{}.{}".format(self._localFilePath, dateTime, self._fileformat)
+                    fileSinkPipeline = " filesink location={} ".format(self._tmpFilepath)
+                else:
+                    logger.info("Setting local filepath")
+                    fileSinkPipeline = " splitmuxsink name=sink muxer=mp4mux muxer-pad-map=x-pad-map,audio=vid location={} max-size-time=1000000000 max-files=60".format(
+                        self._tmpFilepath
+                    )
+                cmd = cmd + fileSinkPipeline
             else:
-                self._tmpFilepath = "{}/Decky-Recorder_{}%02d.mp4".format(
-                    TMPLOCATION, dateTime
-                )
-            if not is_rolling:
-                self._filepath = "{}/Decky-Recorder_{}.{}".format(self._localFilePath, dateTime, self._fileformat)
-                fileSinkPipeline = " filesink location={}".format(self._tmpFilepath)
-            else:
-                fileSinkPipeline = " splitmuxsink name=sink muxer=mp4mux muxer-pad-map=x-pad-map,audio=vid location={} max-size-time=1000000000 ".format(
-                    self._tmpFilepath
-                )
-            cmd = cmd + fileSinkPipeline
-        else:
-            logger.info("Mode {} does not exist".format(self._mode))
-            return
+                logger.info("Mode {} does not exist".format(self._mode))
+                return
 
-        # Creates audio pipeline
-        monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
-        cmd = (
-            cmd
-            + ' pulsesrc device="Recording_{}" ! audioconvert ! lamemp3enc target=bitrate bitrate={} cbr=true ! sink.audio_0'.format(
-                monitor, self._audioBitrate
+            logger.info("Making audio pipeline")
+            # Creates audio pipeline
+            monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
+            cmd = (
+                cmd
+                + ' pulsesrc device="Recording_{}" ! audioconvert ! lamemp3enc target=bitrate bitrate={} cbr=true ! sink.audio_0'.format(
+                    monitor, self._audioBitrate
+                )
             )
-        )
 
-        # Starts the capture process
-        logger.info("Command: " + cmd)
-        self._recording_process = subprocess.Popen(
-            cmd, shell=True, stdout=std_out_file, stderr=std_err_file
-        )
-        logger.info("Recording started!")
+            # Starts the capture process
+            logger.info("Command: " + cmd)
+            self._recording_process = subprocess.Popen(
+                cmd, shell=True, stdout=std_out_file, stderr=std_err_file
+            )
+            logger.info("Recording started!")
+        except Exception:
+            logger.info(traceback.format_exc())
         return
 
     # Stops the capturing process and cleans up if the mode requires
@@ -115,7 +121,7 @@ class Plugin:
         self._recording_process = None
         logger.info("Recording stopped!")
 
-        if not is_rolling:
+        if not self._rolling:
             # if recording was a local file and not rolling
             if (self._mode == "localFile"):
                 logger.info("Repairing file")
@@ -134,6 +140,25 @@ class Plugin:
     async def is_capturing(self):
         logger.info("Is capturing? " + str(self._recording_process is not None))
         return self._recording_process is not None
+
+    async def is_rolling(self):
+        logger.info(f"Is Rolling? {self._rolling}")
+        return self._rolling
+
+    async def enable_rolling(self):
+        # if capturing, stop that capture, then re-enable with rolling
+        was_capturing = False
+        if Plugin.is_capturing(self):
+            was_capturing = True
+            Plugin.stop_capturing(self)
+        self._rolling = True
+        if was_capturing:
+            Plugin.start_capturing(self)
+
+    async def disable_rolling(self):
+        if Plugin.is_capturing(self):
+            Plugin.stop_capturing(self)
+        self._rolling = False
 
     # Sets the current mode, supported modes are: localFile
     async def set_current_mode(self, mode: str):
