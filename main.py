@@ -72,7 +72,7 @@ class Plugin:
                     )
                 else:
                     logger.info("Setting tmp filepath")
-                    self._tmpFilepath = "{}/Decky-Recorder-Rolling_%02d.mp4".format(TMPLOCATION)
+                    self._tmpFilepath = "{}/Decky-Recorder-Rolling_%02d.mp4".format("/dev/shm")
                 if not self._rolling:
                     logger.info("Setting local filepath no rolling")
                     self._filepath = "{}/Decky-Recorder_{}.{}".format(self._localFilePath, dateTime, self._fileformat)

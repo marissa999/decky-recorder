@@ -96,7 +96,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		if (isCapturing === false){
 			setCapturing(true);
 			await serverAPI.callPluginMethod('start_capturing', {});
-			// Router.CloseSideMenus();
+			Router.CloseSideMenus();
 		} else {
 			setCapturing(false);
 			await serverAPI.callPluginMethod('stop_capturing', {});
