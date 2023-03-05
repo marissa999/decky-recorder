@@ -8,7 +8,8 @@ import {
 	Dropdown,
 	DropdownOption,
 	SingleDropdownOption,
-	Router
+	Router,
+        ToggleField
 } from "decky-frontend-lib";
 
 import {
@@ -24,6 +25,8 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	const [isCapturing, setCapturing] = useState<boolean>(false);
 
 	const [mode, setMode] = useState<string>("localFile");
+
+	const [isRolling, setRolling] = useState<boolean>(false);
 
 	const audioBitrateOption128 = {data: "128", label: "128 Kbps"} as SingleDropdownOption
 	const audioBitrateOption192 = {data: "192", label: "192 Kbps"} as SingleDropdownOption
@@ -101,7 +104,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		return "Recordings will be saved to " + localFilePath;
 	}
 
-	const getButtonText = (): string => {
+	const getRecordingButtonText = (): string => {
 		if (isCapturing === false){
 			return "Start Recording";
 		} else {
@@ -113,35 +116,56 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		initState();
 	}, []);
 
-	return (
-		<PanelSection>
-			<PanelSectionRow>
-				<ButtonItem
-					label={getLabelText()}
-					bottomSeparator="none"
-					layout="below"
-					onClick={() => {
-						recordingButtonPress();
-					}}>
-					{getButtonText()}
-				</ButtonItem>
-			</PanelSectionRow>
+        return (
+                <PanelSection>
 
-			<PanelSectionRow>
-				<Dropdown
-					menuLabel="Select the video file format"
-					strDefaultLabel={localFileFormat.label as string}
-					rgOptions={formatOptions}
-					selectedOption={localFileFormat}
-					onChange={(newLocalFileFormat) => {
-						serverAPI.callPluginMethod('set_local_fileformat', {fileformat: newLocalFileFormat.data});
-						setLocalFileFormat(newLocalFileFormat);
-					}}
-				/>
-			</PanelSectionRow>
+                        <PanelSectionRow>
+                                <ButtonItem
+                                        label={getLabelText()}
+                                        bottomSeparator="none"
+                                        layout="below"
+                                        onClick={() => {
+                                                recordingButtonPress();
+                                        }}>
+                                        {getRecordingButtonText()}
+                                </ButtonItem>
+                        </PanelSectionRow>
 
-		</PanelSection>
-	);
+                        <PanelSectionRow>
+                                <Dropdown
+                                        menuLabel="Select the video file format"
+                                        strDefaultLabel={localFileFormat.label as string}
+                                        rgOptions={formatOptions}
+                                        selectedOption={localFileFormat}
+                                        onChange={(newLocalFileFormat) => {
+                                                serverAPI.callPluginMethod('set_local_fileformat', {fileformat: newLocalFileFormat.data});
+                                                setLocalFileFormat(newLocalFileFormat);
+                                        }}
+                                />
+                        </PanelSectionRow>
+
+                        <PanelSectionRow><ToggleField
+                        label="Do Rolling Recording?"
+                        checked={isRolling}
+                        onChange={(e)=>setRolling(e)}
+                        />
+                        </PanelSectionRow>
+
+                        {(isRolling)
+                        ? <PanelSectionRow><ButtonItem disabled={!this.isCapturing}>Save 30 Seconds</ButtonItem></PanelSectionRow> : null }
+
+                        {(isRolling)
+                        ? <PanelSectionRow><ButtonItem disabled={!this.isCapturing}>Save 1 minute</ButtonItem></PanelSectionRow> : null }
+
+                        {(isRolling)
+                        ? <PanelSectionRow><ButtonItem disabled={!this.isCapturing}>Save 2 minutes</ButtonItem></PanelSectionRow> : null }
+
+                        {(isRolling)
+                        ? <PanelSectionRow><ButtonItem disabled={!this.isCapturing}>Save 5 minutes</ButtonItem></PanelSectionRow> : null }
+
+                </PanelSection>
+        );
+
 };
 
 export default definePlugin((serverApi: ServerAPI) => {
