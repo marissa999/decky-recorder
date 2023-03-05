@@ -55,7 +55,7 @@ class Plugin:
 
         # Video Pipeline
         if not is_rolling:
-            ideoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink !"
+            videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink !"
         else:
             videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
             cmd = "{} {}".format(start_command, videoPipeline)
