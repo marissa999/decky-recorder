@@ -104,6 +104,7 @@ class Plugin:
             )
             logger.info("Recording started!")
         except Exception:
+            Plugin.stop_capturing(self)
             logger.info(traceback.format_exc())
         return
 
@@ -146,6 +147,7 @@ class Plugin:
         return self._rolling
 
     async def enable_rolling(self):
+        logger.info("Enable rolling was called begin")
         # if capturing, stop that capture, then re-enable with rolling
         was_capturing = False
         if Plugin.is_capturing(self):
@@ -154,11 +156,14 @@ class Plugin:
         self._rolling = True
         if was_capturing:
             Plugin.start_capturing(self)
+        logger.info("Enable rolling was called end")
 
     async def disable_rolling(self):
+        logger.info("Disable rolling was called begin")
         if Plugin.is_capturing(self):
             Plugin.stop_capturing(self)
         self._rolling = False
+        logger.info("Disable rolling was called end")
 
     # Sets the current mode, supported modes are: localFile
     async def set_current_mode(self, mode: str):

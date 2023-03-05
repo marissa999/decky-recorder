@@ -96,7 +96,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		if (isCapturing === false){
 			setCapturing(true);
 			await serverAPI.callPluginMethod('start_capturing', {});
-			Router.CloseSideMenus();
+			// Router.CloseSideMenus();
 		} else {
 			setCapturing(false);
 			await serverAPI.callPluginMethod('stop_capturing', {});
@@ -157,12 +157,12 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                                 />
                         </PanelSectionRow>
 
-                        <PanelSectionRow><ToggleField
+                        {/* <PanelSectionRow><ToggleField
                         label="Do Rolling Recording?"
                         checked={isRolling}
                         onChange={(e)=>{setRolling(e); rollingToggled();}}
                         />
-                        </PanelSectionRow>
+                        </PanelSectionRow> */}
 
                         {(isRolling)
                         ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 30 Seconds</ButtonItem></PanelSectionRow> : null }
