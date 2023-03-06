@@ -144,7 +144,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 			if (Date.now() - ugly.pressedAt < 2000) {
 				continue;
 			}
-			if (inputs.ulButtons && inputs.ulButtons & (1 << 13) && inputs.ulButtons & (1 << 16)) {
+			if (inputs.ulButtons && inputs.ulButtons & (1 << 13) && inputs.ulButtons & (1 << 4)) {
 				ugly.pressedAt = Date.now();
 				(Router as any).DisableHomeAndQuickAccessButtons();
 				setTimeout(() => {
