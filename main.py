@@ -249,7 +249,6 @@ class Plugin:
             dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
             ffmpeg = subprocess.Popen(
                 f"ffmpeg -f concat -safe 0 -i {prefix}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.mp4",
-                # f"ffmpeg -hwaccel vaapi -hwaccel_output_format vaapi -vaapi_device /dev/dri/renderD128 -f concat -safe 0 -c copy -i {prefix}/files -codec:v h264_vaapi {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.{self._fileformat}",
                 shell=True,
                 stdout=std_out_file,
                 stderr=std_err_file,
