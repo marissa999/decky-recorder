@@ -258,3 +258,4 @@ class Plugin:
             logger.info("finish save rolling function")
         except Exception:
             logger.info(traceback.format_exc())
+        return
