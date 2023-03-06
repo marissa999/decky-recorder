@@ -5,6 +5,7 @@ import signal
 import time
 from datetime import datetime
 import traceback
+from pathlib import Path
 
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/bin"
 GSTPLUGINSPATH = DEPSPATH + "/gstreamer-1.0"
@@ -22,6 +23,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 std_out_file = open("/tmp/decky-recorder-std-out.log", "w")
 std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
+
 
 class Plugin:
 
@@ -72,11 +74,17 @@ class Plugin:
                     )
                 else:
                     logger.info("Setting tmp filepath")
-                    self._tmpFilepath = "{}/Decky-Recorder-Rolling_%02d.mp4".format("/dev/shm")
+                    self._tmpFilepath = "{}/Decky-Recorder-Rolling_%02d.mp4".format(
+                        "/dev/shm"
+                    )
                 if not self._rolling:
                     logger.info("Setting local filepath no rolling")
-                    self._filepath = "{}/Decky-Recorder_{}.{}".format(self._localFilePath, dateTime, self._fileformat)
-                    fileSinkPipeline = " filesink location={} ".format(self._tmpFilepath)
+                    self._filepath = "{}/Decky-Recorder_{}.{}".format(
+                        self._localFilePath, dateTime, self._fileformat
+                    )
+                    fileSinkPipeline = " filesink location={} ".format(
+                        self._tmpFilepath
+                    )
                 else:
                     logger.info("Setting local filepath")
                     fileSinkPipeline = " splitmuxsink name=sink muxer=mp4mux muxer-pad-map=x-pad-map,audio=vid location={} max-size-time=1000000000 max-files=60".format(
@@ -124,13 +132,17 @@ class Plugin:
 
         if not self._rolling:
             # if recording was a local file and not rolling
-            if (self._mode == "localFile"):
+            if self._mode == "localFile":
                 logger.info("Repairing file")
-                ffmpegCmd = "ffmpeg -i {} -c copy {}".format(self._tmpFilepath, self._filepath)
+                ffmpegCmd = "ffmpeg -i {} -c copy {}".format(
+                    self._tmpFilepath, self._filepath
+                )
                 logger.info("Command: " + ffmpegCmd)
                 self._tmpFilepath = None
                 self._filepath = None
-                ffmpeg = subprocess.Popen(ffmpegCmd, shell = True, stdout = std_out_file, stderr = std_err_file)
+                ffmpeg = subprocess.Popen(
+                    ffmpegCmd, shell=True, stdout=std_out_file, stderr=std_err_file
+                )
                 ffmpeg.wait()
                 logger.info("File copied with ffmpeg")
                 os.remove(self._tmpFilepath)
@@ -228,3 +240,43 @@ class Plugin:
             await Plugin.end_recording(self)
             await Plugin.saveConfig(self)
         return
+
+    async def save_rolling_recording(
+        self, clip_duration: float = 30.0, prefix="/dev/shm"
+    ):
+        logger.info("Called save rolling function")
+        try:
+            files = list(Path(prefix).glob("Decky-Recorder-Rolling*"))
+            logger.info(str(files))
+            times = [os.path.getmtime(p) for p in files]
+            logger.info(str(times))
+            ft = sorted(zip(files, times), key=lambda x: -x[1])
+            max_time = ft[0][1] - 1
+            logger.info(str(max_time))
+            files_to_stitch = []
+            for f, ftime in ft:
+                logger.info(type(max_time))
+                logger.info(type(ftime))
+                logger.info(type(clip_duration))
+                logger.info(ftime)
+                logger.info(clip_duration)
+                logger.info(max_time)
+                if max_time - ftime < clip_duration:
+                    files_to_stitch.append(f)
+            with open(prefix + "/files", "w") as ff:
+                for f in reversed(files_to_stitch):
+                    ff.write(f"file {str(f)}\n")
+
+            dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+            ffmpeg = subprocess.Popen(
+                f"ffmpeg -f concat -safe 0 -i {prefix}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.mp4",
+                shell=True,
+                stdout=std_out_file,
+                stderr=std_err_file,
+            )
+            ffmpeg.wait()
+
+            os.remove(prefix + "/files")
+            logger.info("finish save rolling function")
+        except Exception:
+            logger.info(traceback.format_exc())

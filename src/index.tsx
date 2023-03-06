@@ -103,6 +103,10 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		}
 	}
 
+        const rollingRecordButtonPress = async() => {
+            await serverAPI.callPluginMethod('save_rolling_recording', {});
+        }
+
 	const rollingToggled = async () => {
 		if (isRolling === false) {
 			setRolling(true);
@@ -165,7 +169,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                         </PanelSectionRow>
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 30 Seconds</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress()}}>Save 30 Seconds</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
                         ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 1 minute</ButtonItem></PanelSectionRow> : null }
