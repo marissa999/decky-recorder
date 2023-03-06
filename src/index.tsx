@@ -104,7 +104,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	}
 
         const rollingRecordButtonPress = async(duration: number) => {
-            await serverAPI.callPluginMethod('save_rolling_recording', {});
+            await serverAPI.callPluginMethod('save_rolling_recording', {clip_duration: duration});
         }
 
 	const rollingToggled = async () => {

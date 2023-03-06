@@ -222,7 +222,10 @@ class Plugin:
         return
 
     async def _unload(self):
+        logger.info("Unload was called")
+        await Plugin.stop_capturing(self)
         if Plugin.is_capturing(self) == True:
+            logger.info("Cleaning up")
             await Plugin.stop_capturing(self)
             await Plugin.saveConfig(self)
         return
@@ -230,6 +233,7 @@ class Plugin:
     async def save_rolling_recording(self, clip_duration: float = 30.0, prefix="/dev/shm"):
         logger.info("Called save rolling function")
         try:
+            clip_duration = float(clip_duration)
             files = list(Path(prefix).glob("Decky-Recorder-Rolling*"))
             times = [os.path.getmtime(p) for p in files]
             ft = sorted(zip(files, times), key=lambda x: -x[1])
@@ -244,7 +248,8 @@ class Plugin:
 
             dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
             ffmpeg = subprocess.Popen(
-                f"ffmpeg -f concat -safe 0 -i {prefix}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.{self._fileformat}",
+                f"ffmpeg -f concat -safe 0 -i {prefix}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.mp4",
+                # f"ffmpeg -hwaccel vaapi -hwaccel_output_format vaapi -vaapi_device /dev/dri/renderD128 -f concat -safe 0 -c copy -i {prefix}/files -codec:v h264_vaapi {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.{self._fileformat}",
                 shell=True,
                 stdout=std_out_file,
                 stderr=std_err_file,
