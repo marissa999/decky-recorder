@@ -247,20 +247,11 @@ class Plugin:
         logger.info("Called save rolling function")
         try:
             files = list(Path(prefix).glob("Decky-Recorder-Rolling*"))
-            logger.info(str(files))
             times = [os.path.getmtime(p) for p in files]
-            logger.info(str(times))
             ft = sorted(zip(files, times), key=lambda x: -x[1])
             max_time = ft[0][1] - 1
-            logger.info(str(max_time))
             files_to_stitch = []
             for f, ftime in ft:
-                logger.info(type(max_time))
-                logger.info(type(ftime))
-                logger.info(type(clip_duration))
-                logger.info(ftime)
-                logger.info(clip_duration)
-                logger.info(max_time)
                 if max_time - ftime < clip_duration:
                     files_to_stitch.append(f)
             with open(prefix + "/files", "w") as ff:
