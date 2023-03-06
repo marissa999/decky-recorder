@@ -137,15 +137,20 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                 <PanelSection>
 
                         <PanelSectionRow>
-                                <ButtonItem
-                                        label={getLabelText()}
-                                        bottomSeparator="none"
-                                        layout="below"
-                                        onClick={() => {
-                                                recordingButtonPress();
-                                        }}>
-                                        {getRecordingButtonText()}
-                                </ButtonItem>
+                            <ToggleField
+                            label="Replay Mode"
+                            checked={isRolling}
+                            onChange={(e)=>{setRolling(e); rollingToggled();}}
+                            />
+                            <ButtonItem
+                                    label={getLabelText()}
+                                    bottomSeparator="none"
+                                    layout="below"
+                                    onClick={() => {
+                                            recordingButtonPress();
+                                    }}>
+                                    {getRecordingButtonText()}
+                            </ButtonItem>
                         </PanelSectionRow>
 
                         <PanelSectionRow>
@@ -161,24 +166,17 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                                 />
                         </PanelSectionRow>
 
-                        <PanelSectionRow><ToggleField
-                        label="Do Rolling Recording?"
-                        checked={isRolling}
-                        onChange={(e)=>{setRolling(e); rollingToggled();}}
-                        />
-                        </PanelSectionRow>
+                        {(isRolling)
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress()}}>30 sec</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress()}}>Save 30 Seconds</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>1 min</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 1 minute</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>2 min</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 2 minutes</ButtonItem></PanelSectionRow> : null }
-
-                        {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>Save 5 minutes</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>5 min</ButtonItem></PanelSectionRow> : null }
 
                 </PanelSection>
         );
