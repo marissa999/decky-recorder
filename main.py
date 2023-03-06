@@ -223,7 +223,6 @@ class Plugin:
 
     async def _unload(self):
         logger.info("Unload was called")
-        await Plugin.stop_capturing(self)
         if Plugin.is_capturing(self) == True:
             logger.info("Cleaning up")
             await Plugin.stop_capturing(self)

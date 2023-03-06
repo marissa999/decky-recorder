@@ -92,7 +92,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	}
 
-        const notify(message: string, duration: number = 1000) = async() => {
+        const notify = async(message: string, duration: number = 1000) => {
             await serverAPI.toaster.toast({
             title: message,
             body: message,
@@ -114,7 +114,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
         const rollingRecordButtonPress = async(duration: number) => {
             await serverAPI.callPluginMethod('save_rolling_recording', {clip_duration: duration});
-            notify("Saved " + number + " second recording");
+            await notify("Saved " + number + " second clip");
         }
 
 	const rollingToggled = async () => {
