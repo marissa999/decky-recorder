@@ -9,16 +9,18 @@ import {
 	DropdownOption,
 	SingleDropdownOption,
 	Router,
-        ToggleField
+	ToggleField
 } from "decky-frontend-lib";
 
 import {
-	VFC, 
+	VFC,
 	useState,
 	useEffect
 } from "react";
 
 import { FaVideo } from "react-icons/fa";
+
+let ugly = {fn: null, pressedAt: Date.now()};
 
 const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
@@ -28,21 +30,22 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	const [isRolling, setRolling] = useState<boolean>(false);
 
-	const audioBitrateOption128 = {data: "128", label: "128 Kbps"} as SingleDropdownOption
-	const audioBitrateOption192 = {data: "192", label: "192 Kbps"} as SingleDropdownOption
-	const audioBitrateOption256 = {data: "256", label: "256 Kbps"} as SingleDropdownOption
-	const audioBitrateOption320 = {data: "320", label: "320 Kbps"} as SingleDropdownOption
-	const audioBitrateOptions: DropdownOption[] = [audioBitrateOption128, 
+	const audioBitrateOption128 = { data: "128", label: "128 Kbps" } as SingleDropdownOption
+	const audioBitrateOption192 = { data: "192", label: "192 Kbps" } as SingleDropdownOption
+	const audioBitrateOption256 = { data: "256", label: "256 Kbps" } as SingleDropdownOption
+	const audioBitrateOption320 = { data: "320", label: "320 Kbps" } as SingleDropdownOption
+	const audioBitrateOptions: DropdownOption[] = [audioBitrateOption128,
 		audioBitrateOption192, audioBitrateOption256, audioBitrateOption320];
 	const [audioBitrate, setAudioBitrate] = useState<DropdownOption>(audioBitrateOption128);
 
 	const [localFilePath, setLocalFilePath] = useState<string>("/home/deck/Videos");
 
-	const formatOptionMp4 = {data: "mp4", label: "MP4"} as SingleDropdownOption
-	const formatOptionMkv = {data: "mkv", label: "Matroska (.mkv)"} as SingleDropdownOption;
-	const formatOptionMov = {data: "mov", label: "QuickTime (.mov)"} as SingleDropdownOption;
+	const formatOptionMp4 = { data: "mp4", label: "MP4" } as SingleDropdownOption
+	const formatOptionMkv = { data: "mkv", label: "Matroska (.mkv)" } as SingleDropdownOption;
+	const formatOptionMov = { data: "mov", label: "QuickTime (.mov)" } as SingleDropdownOption;
 	const formatOptions: DropdownOption[] = [formatOptionMp4, formatOptionMkv, formatOptionMov];
 	const [localFileFormat, setLocalFileFormat] = useState<DropdownOption>(formatOptionMp4);
+
 
 	const initState = async () => {
 		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_capturing', {});
@@ -72,8 +75,8 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 			default:
 				setAudioBitrate(audioBitrateOption128)
 				break;
-		} 
-		
+		}
+
 		const getLocalFilepathResponse = await serverAPI.callPluginMethod('get_local_filepath', {})
 		setLocalFilePath(getLocalFilepathResponse.result as string);
 
@@ -92,30 +95,68 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	}
 
-        const notify = async(message: string, duration: number=1000) => {
-            await serverAPI.toaster.toast({
-            title: message,
-            body: message,
-            duration: duration,
-            critical: true
-            });
-        }
+	const notify = async (message: string, duration: number = 1000) => {
+		await serverAPI.toaster.toast({
+			title: message,
+			body: message,
+			duration: duration,
+			critical: true
+		});
+	}
 
-	const recordingButtonPress = async() => {
-		if (isCapturing === false){
-                        setCapturing(true);
+	const recordingButtonPress = async () => {
+		if (isCapturing === false) {
+			setCapturing(true);
 			await serverAPI.callPluginMethod('start_capturing', {});
 			Router.CloseSideMenus();
-                } else {
+		} else {
 			setCapturing(false);
 			await serverAPI.callPluginMethod('stop_capturing', {});
 		}
 	}
 
-        const rollingRecordButtonPress = async(duration: number) => {
-            await serverAPI.callPluginMethod('save_rolling_recording', {clip_duration: duration});
-            await notify("Saved " + duration + " second clip");
-        }
+	const rollingRecordButtonPress = async (duration: number) => {
+		await serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration });
+		await notify("Saved " + duration + " second clip");
+	}
+
+	async function handleButtonInput(val: any[]) {
+		/*
+		R2 0
+		L2 1
+		R1 2
+		R2 3
+		Y  4
+		B  5
+		X  6
+		A  7
+		UP 8
+		Right 9
+		Left 10
+		Down 11
+		Select 12
+		Steam 13
+		Start 14
+		QAM  ???
+		L5 15
+		R5 16*/
+		for (const inputs of val) {
+			if (Date.now() - ugly.pressedAt < 2000) {
+				continue;
+			}
+			if (inputs.ulButtons && inputs.ulButtons & (1 << 13) && inputs.ulButtons & (1 << 16)) {
+				ugly.pressedAt = Date.now();
+				(Router as any).DisableHomeAndQuickAccessButtons();
+				setTimeout(() => {
+				(Router as any).EnableHomeAndQuickAccessButtons();
+					}, 1000)
+				await rollingRecordButtonPress(30);
+
+			}
+		}
+	}
+
+	ugly.fn = window.SteamClient.Input.RegisterForControllerStateChanges(handleButtonInput);
 
 	const rollingToggled = async () => {
 		if (isRolling === false) {
@@ -132,7 +173,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	}
 
 	const getRecordingButtonText = (): string => {
-		if (isCapturing === false){
+		if (isCapturing === false) {
 			return "Start Recording";
 		} else {
 			return "Stop Recording";
@@ -143,60 +184,65 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		initState();
 	}, []);
 
-        return (
-                <PanelSection>
+	return (
+		<PanelSection>
 
-                        <PanelSectionRow>
-                            <ToggleField
-                            label="Replay Mode"
-                            checked={isRolling}
-                            onChange={(e)=>{setRolling(e); rollingToggled();}}
-                            />
-                            <ButtonItem
-                                    label={getLabelText()}
-                                    bottomSeparator="none"
-                                    layout="below"
-                                    onClick={() => {
-                                            recordingButtonPress();
-                                    }}>
-                                    {getRecordingButtonText()}
-                            </ButtonItem>
-                        </PanelSectionRow>
+			<PanelSectionRow>
+				<ToggleField
+					label="Replay Mode"
+					checked={isRolling}
+					onChange={(e) => { setRolling(e); rollingToggled(); }}
+				/>
+				<ButtonItem
+					label={getLabelText()}
+					bottomSeparator="none"
+					layout="below"
+					onClick={() => {
+						recordingButtonPress();
+					}}>
+					{getRecordingButtonText()}
+				</ButtonItem>
+			</PanelSectionRow>
 
-                        <PanelSectionRow>
-                                <Dropdown
-                                        menuLabel="Select the video file format"
-                                        strDefaultLabel={localFileFormat.label as string}
-                                        rgOptions={formatOptions}
-                                        selectedOption={localFileFormat}
-                                        onChange={(newLocalFileFormat) => {
-                                                serverAPI.callPluginMethod('set_local_fileformat', {fileformat: newLocalFileFormat.data});
-                                                setLocalFileFormat(newLocalFileFormat);
-                                        }}
-                                />
-                        </PanelSectionRow>
+			<PanelSectionRow>
+				<Dropdown
+					menuLabel="Select the video file format"
+					strDefaultLabel={localFileFormat.label as string}
+					rgOptions={formatOptions}
+					selectedOption={localFileFormat}
+					onChange={(newLocalFileFormat) => {
+						serverAPI.callPluginMethod('set_local_fileformat', { fileformat: newLocalFileFormat.data });
+						setLocalFileFormat(newLocalFileFormat);
+					}}
+				/>
+			</PanelSectionRow>
 
-                        {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress(30)}}>30 sec</ButtonItem></PanelSectionRow> : null }
+			{(isRolling)
+				? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => { rollingRecordButtonPress(30) }}>30 sec</ButtonItem></PanelSectionRow> : null}
 
-                        {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress(60)}}>1 min</ButtonItem></PanelSectionRow> : null }
+			{(isRolling)
+				? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => { rollingRecordButtonPress(60) }}>1 min</ButtonItem></PanelSectionRow> : null}
 
-                        {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress(60*2)}}>2 min</ButtonItem></PanelSectionRow> : null }
+			{(isRolling)
+				? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => { rollingRecordButtonPress(60 * 2) }}>2 min</ButtonItem></PanelSectionRow> : null}
 
-                        {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress(60*5)}}>5 min</ButtonItem></PanelSectionRow> : null }
+			{(isRolling)
+				? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => { rollingRecordButtonPress(60 * 5) }}>5 min</ButtonItem></PanelSectionRow> : null}
 
-                </PanelSection>
-        );
+		</PanelSection>
+	);
 
 };
+
 
 export default definePlugin((serverApi: ServerAPI) => {
 	return {
 		title: <div className={staticClasses.Title}>Decky Recorder</div>,
 		content: <DeckyRecorder serverAPI={serverApi} />,
 		icon: <FaVideo />,
+		onDismount() {
+			//@ts-ignore
+			ugly.fn?.unregister();
+		},
 	};
 });
