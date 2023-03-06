@@ -92,12 +92,21 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	}
 
+        const notify(message: string, duration: number = 1000) = async() => {
+            await serverAPI.toaster.toast({
+            title: message,
+            body: message,
+            duration: duration,
+            critical: true
+            });
+            setCapturing(true);
+        }
+
 	const recordingButtonPress = async() => {
 		if (isCapturing === false){
-			setCapturing(true);
 			await serverAPI.callPluginMethod('start_capturing', {});
 			Router.CloseSideMenus();
-		} else {
+                } else {
 			setCapturing(false);
 			await serverAPI.callPluginMethod('stop_capturing', {});
 		}
@@ -105,6 +114,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
         const rollingRecordButtonPress = async(duration: number) => {
             await serverAPI.callPluginMethod('save_rolling_recording', {clip_duration: duration});
+            notify("Saved " + number + " second recording");
         }
 
 	const rollingToggled = async () => {
