@@ -51,8 +51,10 @@ class Plugin:
             os.environ["HOME"] = "/home/deck"
 
             # Start command including plugin path and ld_lib path
-            start_command = "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(
-                GSTPLUGINSPATH, DEPSPATH
+            start_command = (
+                "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(
+                    GSTPLUGINSPATH, DEPSPATH
+                )
             )
 
             # Video Pipeline
@@ -69,30 +71,22 @@ class Plugin:
                 dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
                 if not self._rolling:
                     logger.info("Setting tmp filepath no rolling")
-                    self._tmpFilepath = "{}/Decky-Recorder_{}.mp4".format(
-                        TMPLOCATION, dateTime
-                    )
+                    self._tmpFilepath = f"{TMPLOCATION}/Decky-Recorder_{dateTime}.{self._fileformat}"
                 else:
                     logger.info("Setting tmp filepath")
-                    self._tmpFilepath = "{}/Decky-Recorder-Rolling_%02d.mp4".format(
-                        "/dev/shm"
-                    )
+                    self._tmpFilepath = f"/dev/shm/Decky-Recorder-Rolling_%02d.{self._fileformat}"
                 if not self._rolling:
                     logger.info("Setting local filepath no rolling")
-                    self._filepath = "{}/Decky-Recorder_{}.{}".format(
-                        self._localFilePath, dateTime, self._fileformat
-                    )
-                    fileSinkPipeline = " filesink location={} ".format(
-                        self._tmpFilepath
-                    )
+                    self._filepath = f"{self._localFilePath}/Decky-Recorder_{dateTime}.{self._fileformat}"
+                    fileSinkPipeline = f" filesink location={self._tmpFilepath} "
                 else:
                     logger.info("Setting local filepath")
-                    fileSinkPipeline = " splitmuxsink name=sink muxer=mp4mux muxer-pad-map=x-pad-map,audio=vid location={} max-size-time=1000000000 max-files=60".format(
+                    fileSinkPipeline = " splitmuxsink name=sink muxer=mp4mux muxer-pad-map=x-pad-map,audio=vid location={} max-size-time=1000000000 max-files=480".format(
                         self._tmpFilepath
                     )
                 cmd = cmd + fileSinkPipeline
             else:
-                logger.info("Mode {} does not exist".format(self._mode))
+                logger.info(f"Mode {self._mode} does not exist")
                 return
 
             logger.info("Making audio pipeline")
@@ -100,16 +94,12 @@ class Plugin:
             monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
             cmd = (
                 cmd
-                + ' pulsesrc device="Recording_{}" ! audioconvert ! lamemp3enc target=bitrate bitrate={} cbr=true ! sink.audio_0'.format(
-                    monitor, self._audioBitrate
-                )
+                + f' pulsesrc device="Recording_{monitor}" ! audioconvert ! lamemp3enc target=bitrate bitrate={self._audioBitrate} cbr=true ! sink.audio_0'
             )
 
             # Starts the capture process
             logger.info("Command: " + cmd)
-            self._recording_process = subprocess.Popen(
-                cmd, shell=True, stdout=std_out_file, stderr=std_err_file
-            )
+            self._recording_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
             logger.info("Recording started!")
         except Exception:
             Plugin.stop_capturing(self)
@@ -134,15 +124,11 @@ class Plugin:
             # if recording was a local file and not rolling
             if self._mode == "localFile":
                 logger.info("Repairing file")
-                ffmpegCmd = "ffmpeg -i {} -c copy {}".format(
-                    self._tmpFilepath, self._filepath
-                )
+                ffmpegCmd = f"ffmpeg -i {self._tmpFilepath} -c copy {self._filepath}"
                 logger.info("Command: " + ffmpegCmd)
                 self._tmpFilepath = None
                 self._filepath = None
-                ffmpeg = subprocess.Popen(
-                    ffmpegCmd, shell=True, stdout=std_out_file, stderr=std_err_file
-                )
+                ffmpeg = subprocess.Popen(ffmpegCmd, shell=True, stdout=std_out_file, stderr=std_err_file)
                 ffmpeg.wait()
                 logger.info("File copied with ffmpeg")
                 os.remove(self._tmpFilepath)
@@ -237,13 +223,11 @@ class Plugin:
 
     async def _unload(self):
         if Plugin.is_capturing(self) == True:
-            await Plugin.end_recording(self)
+            await Plugin.stop_capturing(self)
             await Plugin.saveConfig(self)
         return
 
-    async def save_rolling_recording(
-        self, clip_duration: float = 30.0, prefix="/dev/shm"
-    ):
+    async def save_rolling_recording(self, clip_duration: float = 30.0, prefix="/dev/shm"):
         logger.info("Called save rolling function")
         try:
             files = list(Path(prefix).glob("Decky-Recorder-Rolling*"))
@@ -260,7 +244,7 @@ class Plugin:
 
             dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
             ffmpeg = subprocess.Popen(
-                f"ffmpeg -f concat -safe 0 -i {prefix}/files {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.mp4",
+                f"ffmpeg -f concat -safe 0 -i {prefix}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.{self._fileformat}",
                 shell=True,
                 stdout=std_out_file,
                 stderr=std_err_file,

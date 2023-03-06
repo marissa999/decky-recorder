@@ -103,7 +103,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		}
 	}
 
-        const rollingRecordButtonPress = async() => {
+        const rollingRecordButtonPress = async(duration: number) => {
             await serverAPI.callPluginMethod('save_rolling_recording', {});
         }
 
@@ -167,16 +167,16 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                         </PanelSectionRow>
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress()}}>30 sec</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress(30)}}>30 sec</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>1 min</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress(60)}}>1 min</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>2 min</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress(60*2)}}>2 min</ButtonItem></PanelSectionRow> : null }
 
                         {(isRolling)
-                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing}>5 min</ButtonItem></PanelSectionRow> : null }
+                        ? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => {rollingRecordButtonPress(60*5)}}>5 min</ButtonItem></PanelSectionRow> : null }
 
                 </PanelSection>
         );
