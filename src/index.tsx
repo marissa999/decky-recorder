@@ -116,8 +116,10 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	}
 
 	const rollingRecordButtonPress = async (duration: number) => {
-		await serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration });
-		await notify("Saved " + duration + " second clip");
+		let res = await serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration }).result;
+                if (res) {
+                    await notify("Saved " + duration + " second clip");
+                }
 	}
 
 	async function handleButtonInput(val: any[]) {
