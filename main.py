@@ -26,10 +26,20 @@ std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
 
 try:
     import psutil
+
     logger.info(psutil.__path__)
     sys.path.append("/home/deck/homebrew/plugins/decky-recorder/bin/psutil")
 except Exception:
     logger.info(traceback.format_exc())
+
+
+def find_gst_processes():
+    pids = []
+    for child in psutil.process_iter():
+        if "Decky-Recorder" in " ".join(child.cmdline()):
+            pids.append(child.pid)
+    return pids
+
 
 class Plugin:
 
@@ -44,6 +54,14 @@ class Plugin:
     _fileformat: str = "mp4"
     _rolling: bool = False
 
+    async def clear_rogue_gst_processes(self):
+        gst_pids = find_gst_processes()
+        curr_pid = self._recording_process.pid if self._recording_process is not None else None
+        for pid in gst_pids:
+            if pid != curr_pid:
+                logger.info(f"Killing rogue process {pid}")
+                os.kill(pid, signal.SIGKILL)
+
     # Starts the capturing process
     async def start_capturing(self):
         try:
@@ -51,6 +69,8 @@ class Plugin:
             if Plugin.is_capturing(self) == True:
                 logger.info("Error: Already recording")
                 return
+
+            await Plugin.clear_rogue_gst_processes(self)
 
             os.environ["XDG_RUNTIME_DIR"] = "/run/user/1000"
             os.environ["XDG_SESSION_TYPE"] = "wayland"
@@ -148,6 +168,7 @@ class Plugin:
 
     async def is_rolling(self):
         logger.info(f"Is Rolling? {self._rolling}")
+        await Plugin.clear_rogue_gst_processes(self)
         return self._rolling
 
     async def enable_rolling(self):
