@@ -20,7 +20,7 @@ import {
 
 import { FaVideo } from "react-icons/fa";
 
-let ugly = {fn: null, pressedAt: Date.now()};
+let ugly = { fn: null, pressedAt: Date.now() };
 
 const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
@@ -29,6 +29,8 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	const [mode, setMode] = useState<string>("localFile");
 
 	const [isRolling, setRolling] = useState<boolean>(false);
+
+	const [buttonsEnabled, setButtonsEnabled] = useState<boolean>(true);
 
 	const audioBitrateOption128 = { data: "128", label: "128 Kbps" } as SingleDropdownOption
 	const audioBitrateOption192 = { data: "192", label: "192 Kbps" } as SingleDropdownOption
@@ -116,10 +118,24 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	}
 
 	const rollingRecordButtonPress = async (duration: number) => {
-		let res = await serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration }).result;
-                if (res) {
-                    await notify("Saved " + duration + " second clip");
-                }
+		setButtonsEnabled(false);
+		setTimeout(() => {
+			setButtonsEnabled(true);
+		}, 1000)
+		const res = await serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration });
+		if ((res.result as boolean)) {
+			await notify("Saved " + duration + " second clip");
+		}
+	}
+
+	const shouldButtonsBeEnabled = () => {
+		if (!isCapturing) {
+			return false;
+		}
+		if (!buttonsEnabled) {
+			return false;
+		}
+		return true;
 	}
 
 	async function handleButtonInput(val: any[]) {
@@ -150,8 +166,8 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 				ugly.pressedAt = Date.now();
 				(Router as any).DisableHomeAndQuickAccessButtons();
 				setTimeout(() => {
-				(Router as any).EnableHomeAndQuickAccessButtons();
-					}, 1000)
+					(Router as any).EnableHomeAndQuickAccessButtons();
+				}, 1000)
 				await rollingRecordButtonPress(30);
 
 			}
@@ -220,16 +236,16 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 			</PanelSectionRow>
 
 			{(isRolling)
-				? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => { rollingRecordButtonPress(30) }}>30 sec</ButtonItem></PanelSectionRow> : null}
+				? <PanelSectionRow><ButtonItem disabled={!shouldButtonsBeEnabled()} onClick={() => { rollingRecordButtonPress(30) }}>30 sec</ButtonItem></PanelSectionRow> : null}
 
 			{(isRolling)
-				? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => { rollingRecordButtonPress(60) }}>1 min</ButtonItem></PanelSectionRow> : null}
+				? <PanelSectionRow><ButtonItem disabled={!shouldButtonsBeEnabled()} onClick={() => { rollingRecordButtonPress(60) }}>1 min</ButtonItem></PanelSectionRow> : null}
 
 			{(isRolling)
-				? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => { rollingRecordButtonPress(60 * 2) }}>2 min</ButtonItem></PanelSectionRow> : null}
+				? <PanelSectionRow><ButtonItem disabled={!shouldButtonsBeEnabled()} onClick={() => { rollingRecordButtonPress(60 * 2) }}>2 min</ButtonItem></PanelSectionRow> : null}
 
 			{(isRolling)
-				? <PanelSectionRow><ButtonItem disabled={!isCapturing} onClick={() => { rollingRecordButtonPress(60 * 5) }}>5 min</ButtonItem></PanelSectionRow> : null}
+				? <PanelSectionRow><ButtonItem disabled={!shouldButtonsBeEnabled()} onClick={() => { rollingRecordButtonPress(60 * 5) }}>5 min</ButtonItem></PanelSectionRow> : null}
 
 		</PanelSection>
 	);

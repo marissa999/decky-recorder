@@ -286,8 +286,8 @@ class Plugin:
             ffmpeg.wait()
 
             os.remove(prefix + "/files")
-            logger.info("finish save rolling function")
             self._last_clip_time = time.time()
+            logger.info("finish save rolling function")
             return True
         except Exception:
             logger.info(traceback.format_exc())
