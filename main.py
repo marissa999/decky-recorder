@@ -53,6 +53,7 @@ class Plugin:
     _localFilePath: str = "/home/deck/Videos"
     _fileformat: str = "mp4"
     _rolling: bool = False
+    _last_clip_time: float = time.time()
 
     async def clear_rogue_gst_processes(self):
         gst_pids = find_gst_processes()
@@ -258,6 +259,9 @@ class Plugin:
 
     async def save_rolling_recording(self, clip_duration: float = 30.0, prefix="/dev/shm"):
         logger.info("Called save rolling function")
+        if time.time() - self._last_clip_time < 5:
+            logger.info("Too early to record another clip")
+            return False
         try:
             clip_duration = float(clip_duration)
             files = list(Path(prefix).glob("Decky-Recorder-Rolling*"))
@@ -283,6 +287,8 @@ class Plugin:
 
             os.remove(prefix + "/files")
             logger.info("finish save rolling function")
+            self._last_clip_time = time.time()
+            return True
         except Exception:
             logger.info(traceback.format_exc())
-        return
+        return False
