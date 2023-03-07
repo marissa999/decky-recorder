@@ -1,10 +1,10 @@
 import os
 import sys
+import traceback
 import subprocess
 import signal
 import time
 from datetime import datetime
-import traceback
 from pathlib import Path
 
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/bin"
@@ -24,6 +24,12 @@ logger.setLevel(logging.DEBUG)
 std_out_file = open("/tmp/decky-recorder-std-out.log", "w")
 std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
 
+try:
+    import psutil
+    logger.info(psutil.__path__)
+    sys.path.append("/home/deck/homebrew/plugins/decky-recorder/bin/psutil")
+except Exception:
+    logger.info(traceback.format_exc())
 
 class Plugin:
 
