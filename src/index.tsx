@@ -173,7 +173,12 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 				setTimeout(() => {
 					(Router as any).EnableHomeAndQuickAccessButtons();
 				}, 1000)
-				await rollingRecordButtonPress(30);
+				if (isRolling) {
+					await rollingRecordButtonPress(30);
+				} else {
+					setRolling(true);
+					rollingToggled();
+				}
 
 			}
 		}
