@@ -94,7 +94,7 @@ class Plugin:
             # If mode is localFile
             if self._mode == "localFile":
                 logger.info("Local File Recording")
-                dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+                dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 if not self._rolling:
                     logger.info("Setting tmp filepath no rolling")
                     self._tmpFilepath = f"{TMPLOCATION}/Decky-Recorder_{dateTime}.{self._fileformat}"
@@ -276,7 +276,7 @@ class Plugin:
                 for f in reversed(files_to_stitch):
                     ff.write(f"file {str(f)}\n")
 
-            dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+            dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             ffmpeg = subprocess.Popen(
                 f"ffmpeg -f concat -safe 0 -i {prefix}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.mp4",
                 shell=True,
