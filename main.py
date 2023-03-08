@@ -42,7 +42,6 @@ def find_gst_processes():
 
 
 class Plugin:
-
     _recording_process = None
 
     _tmpFilepath: str = None
@@ -67,7 +66,7 @@ class Plugin:
     async def start_capturing(self):
         try:
             logger.info("Starting recording")
-            if Plugin.is_capturing(self) == True:
+            if await Plugin.is_capturing(self) == True:
                 logger.info("Error: Already recording")
                 return
 
@@ -129,14 +128,14 @@ class Plugin:
             self._recording_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
             logger.info("Recording started!")
         except Exception:
-            Plugin.stop_capturing(self)
+            await Plugin.stop_capturing(self)
             logger.info(traceback.format_exc())
         return
 
     # Stops the capturing process and cleans up if the mode requires
     async def stop_capturing(self):
         logger.info("Stopping recording")
-        if Plugin.is_capturing(self) == False:
+        if await Plugin.is_capturing(self) == False:
             logger.info("Error: No recording process to stop")
             return
         logger.info("Sending sigin")
@@ -175,19 +174,17 @@ class Plugin:
     async def enable_rolling(self):
         logger.info("Enable rolling was called begin")
         # if capturing, stop that capture, then re-enable with rolling
-        was_capturing = False
-        if Plugin.is_capturing(self):
+        if await Plugin.is_capturing(self):
             was_capturing = True
-            Plugin.stop_capturing(self)
+            await Plugin.stop_capturing(self)
         self._rolling = True
-        if was_capturing:
-            Plugin.start_capturing(self)
+        await Plugin.start_capturing(self)
         logger.info("Enable rolling was called end")
 
     async def disable_rolling(self):
         logger.info("Disable rolling was called begin")
-        if Plugin.is_capturing(self):
-            Plugin.stop_capturing(self)
+        if await Plugin.is_capturing(self):
+            await Plugin.stop_capturing(self)
         self._rolling = False
         logger.info("Disable rolling was called end")
 
@@ -251,26 +248,29 @@ class Plugin:
 
     async def _unload(self):
         logger.info("Unload was called")
-        if Plugin.is_capturing(self) == True:
+        if await Plugin.is_capturing(self) == True:
             logger.info("Cleaning up")
             await Plugin.stop_capturing(self)
             await Plugin.saveConfig(self)
         return
 
     async def save_rolling_recording(self, clip_duration: float = 30.0, prefix="/dev/shm"):
+        clip_duration = int(clip_duration)
         logger.info("Called save rolling function")
         if time.time() - self._last_clip_time < 5:
             logger.info("Too early to record another clip")
-            return False
+            return 0
         try:
             clip_duration = float(clip_duration)
             files = list(Path(prefix).glob("Decky-Recorder-Rolling*"))
-            times = [os.path.getmtime(p) for p in files]
+            times = [os.path.getctime(p) for p in files]
             ft = sorted(zip(files, times), key=lambda x: -x[1])
             max_time = ft[0][1] - 1
             files_to_stitch = []
+            actual_dur = 0
             for f, ftime in ft:
-                if max_time - ftime < clip_duration:
+                if max_time - ftime <= clip_duration:
+                    actual_dur = max_time - ftime
                     files_to_stitch.append(f)
             with open(prefix + "/files", "w") as ff:
                 for f in reversed(files_to_stitch):
@@ -288,7 +288,7 @@ class Plugin:
             os.remove(prefix + "/files")
             self._last_clip_time = time.time()
             logger.info("finish save rolling function")
-            return True
+            return int(actual_dur)
         except Exception:
             logger.info(traceback.format_exc())
-        return False
+        return -1

@@ -123,8 +123,13 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 			setButtonsEnabled(true);
 		}, 1000)
 		const res = await serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration });
-		if ((res.result as boolean)) {
-			await notify("Saved " + duration + " second clip");
+		let r = (res.result as number)
+		if (r > 0) {
+			await notify("Saved clip");
+		} else if (r == 0) {
+			await notify("Too early to record another clip");
+		} else if (r == -1) {
+			await notify("ERROR: Could not save clip");
 		}
 	}
 
@@ -178,12 +183,15 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	const rollingToggled = async () => {
 		if (isRolling === false) {
+			await notify("Enabling replay mode, Steam + Y to save last 30 seconds", 1000);
 			setRolling(true);
 			await serverAPI.callPluginMethod('enable_rolling', {});
 		} else {
 			setRolling(false);
 			await serverAPI.callPluginMethod('disable_rolling', {});
 		}
+                let res = await serverAPI.callPluginMethod('is_capturing', {});
+                setCapturing(res.result as boolean);
 	}
 
 	const getLabelText = (): string => {
@@ -211,15 +219,17 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 					checked={isRolling}
 					onChange={(e) => { setRolling(e); rollingToggled(); }}
 				/>
-				<ButtonItem
-					label={getLabelText()}
-					bottomSeparator="none"
-					layout="below"
-					onClick={() => {
-						recordingButtonPress();
-					}}>
-					{getRecordingButtonText()}
-				</ButtonItem>
+				{(!isRolling) ?
+					<ButtonItem
+						label={getLabelText()}
+						bottomSeparator="none"
+						layout="below"
+						onClick={() => {
+							recordingButtonPress();
+						}}>
+						{getRecordingButtonText()}
+					</ButtonItem> : null
+				}
 			</PanelSectionRow>
 
 			<PanelSectionRow>
