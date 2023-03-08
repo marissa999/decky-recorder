@@ -20,9 +20,81 @@ import {
 
 import { FaVideo } from "react-icons/fa";
 
-let ugly = { fn: null, pressedAt: Date.now() };
+let ugly = { pressedAt: Date.now() };
 
-const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
+class DeckyRecorderLogic
+	{
+	serverAPI: ServerAPI;
+	isRolling: boolean = false;
+
+	constructor(serverAPI: ServerAPI) {
+		this.serverAPI = serverAPI;
+	}
+
+	notify = async (message: string, duration: number = 1000) => {
+		await this.serverAPI.toaster.toast({
+			title: message,
+			body: message,
+			duration: duration,
+			critical: true
+		});
+	}
+
+	saveRollingRecording = async  (duration: number) => {
+		const res = await this.serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration });
+		let r = (res.result as number)
+		if (r > 0) {
+			await this.notify("Saved clip");
+		} else if (r == 0) {
+			await this.notify("Too early to record another clip");
+		} else {
+			await this.notify("ERROR: Could not save clip");
+		}
+	}
+
+	handleButtonInput = async (val: any[]) => {
+		/*
+		R2 0
+		L2 1
+		R1 2
+		R2 3
+		Y  4
+		B  5
+		X  6
+		A  7
+		UP 8
+		Right 9
+		Left 10
+		Down 11
+		Select 12
+		Steam 13
+		Start 14
+		QAM  ???
+		L5 15
+		R5 16*/
+		for (const inputs of val) {
+			if (Date.now() - ugly.pressedAt < 2000) {
+				continue;
+			}
+			if (inputs.ulButtons && inputs.ulButtons & (1 << 13) && inputs.ulButtons & (1 << 4)) {
+				ugly.pressedAt = Date.now();
+				(Router as any).DisableHomeAndQuickAccessButtons();
+				setTimeout(() => {
+					(Router as any).EnableHomeAndQuickAccessButtons();
+				}, 1000)
+				// if (this.isRolling) {
+				await this.saveRollingRecording(30);
+				// } else {
+				// 	setRolling(true);
+				// 	rollingToggled();
+				// }
+			}
+		}
+	}
+
+}
+
+const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = ({ serverAPI, logic }) => {
 
 	const [isCapturing, setCapturing] = useState<boolean>(false);
 
@@ -47,7 +119,6 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 	const formatOptionMov = { data: "mov", label: "QuickTime (.mov)" } as SingleDropdownOption;
 	const formatOptions: DropdownOption[] = [formatOptionMp4, formatOptionMkv, formatOptionMov];
 	const [localFileFormat, setLocalFileFormat] = useState<DropdownOption>(formatOptionMp4);
-
 
 	const initState = async () => {
 		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_capturing', {});
@@ -97,15 +168,6 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 	}
 
-	const notify = async (message: string, duration: number = 1000) => {
-		await serverAPI.toaster.toast({
-			title: message,
-			body: message,
-			duration: duration,
-			critical: true
-		});
-	}
-
 	const recordingButtonPress = async () => {
 		if (isCapturing === false) {
 			setCapturing(true);
@@ -121,16 +183,8 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		setButtonsEnabled(false);
 		setTimeout(() => {
 			setButtonsEnabled(true);
-		}, 1000)
-		const res = await serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration });
-		let r = (res.result as number)
-		if (r > 0) {
-			await notify("Saved clip");
-		} else if (r == 0) {
-			await notify("Too early to record another clip");
-		} else if (r == -1) {
-			await notify("ERROR: Could not save clip");
-		}
+		}, 1000);
+		logic.saveRollingRecording(duration);
 	}
 
 	const shouldButtonsBeEnabled = () => {
@@ -143,52 +197,9 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 		return true;
 	}
 
-	async function handleButtonInput(val: any[]) {
-		/*
-		R2 0
-		L2 1
-		R1 2
-		R2 3
-		Y  4
-		B  5
-		X  6
-		A  7
-		UP 8
-		Right 9
-		Left 10
-		Down 11
-		Select 12
-		Steam 13
-		Start 14
-		QAM  ???
-		L5 15
-		R5 16*/
-		for (const inputs of val) {
-			if (Date.now() - ugly.pressedAt < 2000) {
-				continue;
-			}
-			if (inputs.ulButtons && inputs.ulButtons & (1 << 13) && inputs.ulButtons & (1 << 4)) {
-				ugly.pressedAt = Date.now();
-				(Router as any).DisableHomeAndQuickAccessButtons();
-				setTimeout(() => {
-					(Router as any).EnableHomeAndQuickAccessButtons();
-				}, 1000)
-				if (isRolling) {
-					await rollingRecordButtonPress(30);
-				} else {
-					setRolling(true);
-					rollingToggled();
-				}
-
-			}
-		}
-	}
-
-	ugly.fn = window.SteamClient.Input.RegisterForControllerStateChanges(handleButtonInput);
-
 	const rollingToggled = async () => {
 		if (isRolling === false) {
-			await notify("Enabling replay mode, Steam + Y to save last 30 seconds", 1000);
+			await logic.notify("Enabling replay mode, Steam + Y to save last 30 seconds", 1000);
 			setRolling(true);
 			await serverAPI.callPluginMethod('enable_rolling', {});
 		} else {
@@ -269,9 +280,11 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 
 export default definePlugin((serverApi: ServerAPI) => {
+	let logic = new DeckyRecorderLogic(serverApi);
+	window.SteamClient.Input.RegisterForControllerStateChanges(logic.handleButtonInput);
 	return {
 		title: <div className={staticClasses.Title}>Decky Recorder</div>,
-		content: <DeckyRecorder serverAPI={serverApi} />,
+		content: <DeckyRecorder serverAPI={serverApi} logic={logic} />,
 		icon: <FaVideo />,
 		onDismount() {
 			//@ts-ignore
