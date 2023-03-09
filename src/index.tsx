@@ -29,7 +29,10 @@ class DeckyRecorderLogic
 		this.serverAPI = serverAPI;
 	}
 
-	notify = async (message: string, duration: number = 1000) => {
+	notify = async (message: string, duration: number = 1000, body: string = "") => {
+		if (!body) {
+			body = message;
+		}
 		await this.serverAPI.toaster.toast({
 			title: message,
 			body: message,
@@ -52,7 +55,7 @@ class DeckyRecorderLogic
 
 	toggleRolling = async (isRolling: boolean) => {
 		if (!isRolling) {
-			await this.notify("Enabling replay mode, Steam + Y to save last 30 seconds", 1000);
+			await this.notify("Enabling replay mode", 1500, "Steam + Y to save last 30 seconds");
 			await this.serverAPI.callPluginMethod('enable_rolling', {});
 		} else {
 			await this.serverAPI.callPluginMethod('disable_rolling', {});
