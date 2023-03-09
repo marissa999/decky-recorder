@@ -20,12 +20,10 @@ import {
 
 import { FaVideo } from "react-icons/fa";
 
-let ugly = { pressedAt: Date.now() };
-
 class DeckyRecorderLogic
 	{
 	serverAPI: ServerAPI;
-	isRolling: boolean = false;
+	pressedAt: number = Date.now();
 
 	constructor(serverAPI: ServerAPI) {
 		this.serverAPI = serverAPI;
@@ -52,6 +50,15 @@ class DeckyRecorderLogic
 		}
 	}
 
+	toggleRolling = async (isRolling: boolean) => {
+		if (!isRolling) {
+			await this.notify("Enabling replay mode, Steam + Y to save last 30 seconds", 1000);
+			await this.serverAPI.callPluginMethod('enable_rolling', {});
+		} else {
+			await this.serverAPI.callPluginMethod('disable_rolling', {});
+		}
+	}
+
 	handleButtonInput = async (val: any[]) => {
 		/*
 		R2 0
@@ -73,21 +80,21 @@ class DeckyRecorderLogic
 		L5 15
 		R5 16*/
 		for (const inputs of val) {
-			if (Date.now() - ugly.pressedAt < 2000) {
+			if (Date.now() - this.pressedAt < 2000) {
 				continue;
 			}
 			if (inputs.ulButtons && inputs.ulButtons & (1 << 13) && inputs.ulButtons & (1 << 4)) {
-				ugly.pressedAt = Date.now();
+				this.pressedAt = Date.now();
 				(Router as any).DisableHomeAndQuickAccessButtons();
 				setTimeout(() => {
 					(Router as any).EnableHomeAndQuickAccessButtons();
 				}, 1000)
-				// if (this.isRolling) {
-				await this.saveRollingRecording(30);
-				// } else {
-				// 	setRolling(true);
-				// 	rollingToggled();
-				// }
+				let isRolling = await this.serverAPI.callPluginMethod("is_rolling", {});
+				if (isRolling.result as boolean) {
+					await this.saveRollingRecording(30);
+				} else {
+					this.toggleRolling(false);
+				}
 			}
 		}
 	}
@@ -198,16 +205,10 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 	}
 
 	const rollingToggled = async () => {
-		if (isRolling === false) {
-			await logic.notify("Enabling replay mode, Steam + Y to save last 30 seconds", 1000);
-			setRolling(true);
-			await serverAPI.callPluginMethod('enable_rolling', {});
-		} else {
-			setRolling(false);
-			await serverAPI.callPluginMethod('disable_rolling', {});
-		}
-                let res = await serverAPI.callPluginMethod('is_capturing', {});
-                setCapturing(res.result as boolean);
+		logic.toggleRolling(isRolling);
+		setRolling(!isRolling);
+		let res = await serverAPI.callPluginMethod('is_capturing', {});
+		setCapturing(res.result as boolean);
 	}
 
 	const getLabelText = (): string => {
@@ -281,14 +282,13 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 
 export default definePlugin((serverApi: ServerAPI) => {
 	let logic = new DeckyRecorderLogic(serverApi);
-	window.SteamClient.Input.RegisterForControllerStateChanges(logic.handleButtonInput);
+	let input_register = window.SteamClient.Input.RegisterForControllerStateChanges(logic.handleButtonInput);
 	return {
 		title: <div className={staticClasses.Title}>Decky Recorder</div>,
 		content: <DeckyRecorder serverAPI={serverApi} logic={logic} />,
 		icon: <FaVideo />,
 		onDismount() {
-			//@ts-ignore
-			ugly.fn?.unregister();
+			input_register.unregister();
 		},
 	};
 });
