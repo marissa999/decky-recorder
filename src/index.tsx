@@ -35,7 +35,7 @@ class DeckyRecorderLogic
 		}
 		await this.serverAPI.toaster.toast({
 			title: message,
-			body: message,
+			body: body,
 			duration: duration,
 			critical: true
 		});
@@ -92,7 +92,7 @@ class DeckyRecorderLogic
 				setTimeout(() => {
 					(Router as any).EnableHomeAndQuickAccessButtons();
 				}, 1000)
-				let isRolling = await this.serverAPI.callPluginMethod("is_rolling", {});
+				const isRolling = await this.serverAPI.callPluginMethod("is_rolling", {});
 				if (isRolling.result as boolean) {
 					await this.saveRollingRecording(30);
 				} else {
@@ -209,9 +209,8 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 
 	const rollingToggled = async () => {
 		logic.toggleRolling(isRolling);
+		setCapturing(!isRolling);
 		setRolling(!isRolling);
-		let res = await serverAPI.callPluginMethod('is_capturing', {});
-		setCapturing(res.result as boolean);
 	}
 
 	const getLabelText = (): string => {

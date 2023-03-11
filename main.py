@@ -26,9 +26,8 @@ std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
 
 try:
     import psutil
-
-    logger.info(psutil.__path__)
     sys.path.append("/home/deck/homebrew/plugins/decky-recorder/bin/psutil")
+    logger.info("Successfully loaded psutil")
 except Exception:
     logger.info(traceback.format_exc())
 
@@ -152,13 +151,16 @@ class Plugin:
                 logger.info("Repairing file")
                 ffmpegCmd = f"ffmpeg -i {self._tmpFilepath} -c copy {self._filepath}"
                 logger.info("Command: " + ffmpegCmd)
-                self._tmpFilepath = None
-                self._filepath = None
                 ffmpeg = subprocess.Popen(ffmpegCmd, shell=True, stdout=std_out_file, stderr=std_err_file)
                 ffmpeg.wait()
                 logger.info("File copied with ffmpeg")
-                os.remove(self._tmpFilepath)
-                logger.info("Tmpfile deleted")
+                try:
+                    os.remove(self._tmpFilepath)
+                    logger.info("Tmpfile deleted")
+                except Exception:
+                    logger.error("Could not delete tmp file" + traceback.format_exc())
+                self._tmpFilepath = None
+                self._filepath = None
         return
 
     # Returns true if the plugin is currently capturing
@@ -175,7 +177,6 @@ class Plugin:
         logger.info("Enable rolling was called begin")
         # if capturing, stop that capture, then re-enable with rolling
         if await Plugin.is_capturing(self):
-            was_capturing = True
             await Plugin.stop_capturing(self)
         self._rolling = True
         await Plugin.start_capturing(self)
@@ -199,9 +200,9 @@ class Plugin:
         return self._mode
 
     # Sets audio bitrate
-    async def set_audio_bitrate(self, aduioBitrate: int):
-        logger.info("New audio bitrate: " + aduioBitrate)
-        self._audioBitrate = aduioBitrate
+    async def set_audio_bitrate(self, audioBitrate: int):
+        logger.info(f"New audio bitrate: {audioBitrate}")
+        self._audioBitrate = audioBitrate
 
     # Gets the audio bitrate
     async def get_audio_bitrate(self):
@@ -267,7 +268,7 @@ class Plugin:
             ft = sorted(zip(files, times), key=lambda x: -x[1])
             max_time = ft[0][1] - 1
             files_to_stitch = []
-            actual_dur = 0
+            actual_dur = 0.0
             for f, ftime in ft:
                 if max_time - ftime <= clip_duration:
                     actual_dur = max_time - ftime
