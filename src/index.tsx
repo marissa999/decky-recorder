@@ -55,7 +55,6 @@ class DeckyRecorderLogic
 
 	toggleRolling = async (isRolling: boolean) => {
 		if (!isRolling) {
-			await this.notify("Enabling replay mode", 1500, "Steam + Y to save last 30 seconds");
 			await this.serverAPI.callPluginMethod('enable_rolling', {});
 		} else {
 			await this.serverAPI.callPluginMethod('disable_rolling', {});
@@ -96,6 +95,7 @@ class DeckyRecorderLogic
 				if (isRolling.result as boolean) {
 					await this.saveRollingRecording(30);
 				} else {
+					await this.notify("Enabling replay mode", 1500, "Steam + Y to save last 30 seconds");
 					this.toggleRolling(false);
 				}
 			}
