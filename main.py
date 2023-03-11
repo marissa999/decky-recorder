@@ -52,7 +52,7 @@ class Plugin:
 		# If mode is localFile
 		if (self._mode == "localFile"):
 			logger.info("Local File Recording")
-			dateTime = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+			dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 			self._tmpFilepath = "{}/Decky-Recorder_{}.mp4".format(TMPLOCATION, dateTime)
 			self._filepath = "{}/Decky-Recorder_{}.{}".format(self._localFilePath, dateTime, self._fileformat)
 			fileSinkPipeline = " filesink location={}".format(self._tmpFilepath)
