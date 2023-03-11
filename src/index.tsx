@@ -238,6 +238,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 					checked={isRolling}
 					onChange={(e) => { setRolling(e); rollingToggled(); }}
 				/>
+				<div>Steam + Y saves a 30 second clip in replay mode. If replay mode is off, this shortcut will enable it.</div>
 				{(!isRolling) ?
 					<ButtonItem
 						label={getLabelText()}
