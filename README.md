@@ -15,6 +15,12 @@ Please do not judge my code, I am bad!
 
 This plugin is still in WIP.
 
+### Thanks
+- [@Newbytee](https://github.com/Newbytee) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command
+- Avery for the original Recapture Plugin
+- Epictek for inspiring me to setup a proper build process (https://github.com/Epictek/DeckyStream I found out about this plugin when I was basically already done q.q)
+- [kleutzinger](https://github.com/kleutzinger) for fixing the file names and making it so it confirms with ISO_8601
+
 ### Known issues
 - It seems like long recordings (over 30 minutes) dont get saved (https://github.com/marissa999/decky-recorder/issues/2#issuecomment-1445399044)
 - It seems like starting a recording while docked and outputting to a 4k monitor causes the Deck to crash (https://github.com/marissa999/decky-recorder/issues/8)
@@ -33,8 +39,3 @@ I only tested this on Arch Linux (which I use, btw!)
 - WIP: Figuring out why sometimes recording stutter/audio + video don't align. Might require re-transcoding with ffmpeg to re-align dts-stuff? Dunno (Current state: FFmpeg will now copy the files from tmpfs to the ~/Videos-folder and fix dts while doing so. Not working: FFmpeg needs to run AFTER gst-launcher-1.0 finished, but because gst-launcher-1.0 is running through a python subprocess with shell=true this is apparently not that easy and I can not just wait for it?!)
 - WIP: Finishing RTSP-Server-Sink (Current state: UI is done, I should have all libraries? I think? And if not I can easily add missing libraries. But... What is the actual pipeline that I need?)
 - Exploring the possibility of setting up a background process for recording to a tmpfs, and adding a button to properly save the last 30 seconds
-
-### Thanks
-- [@Newbytee](https://github.com/Newbytee) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command
-- Avery for the original Recapture Plugin
-- Epictek for inspiring me to setup a proper build process (https://github.com/Epictek/DeckyStream I found out about this plugin when I was basically already done q.q)
