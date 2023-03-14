@@ -285,7 +285,6 @@ class Plugin:
                 stderr=std_err_file,
             )
             ffmpeg.wait()
-
             os.remove(prefix + "/files")
             self._last_clip_time = time.time()
             logger.info("finish save rolling function")
