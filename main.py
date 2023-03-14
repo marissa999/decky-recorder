@@ -293,7 +293,7 @@ class Plugin:
 
             dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             ffmpeg = subprocess.Popen(
-                f"ffmpeg -f concat -safe 0 -i {prefix}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.{self._fileformat}",
+                f"ffmpeg -f concat -safe 0 -i {this._rollingRecordingFolder}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.{self._fileformat}",
                 shell=True,
                 stdout=std_out_file,
                 stderr=std_err_file,
