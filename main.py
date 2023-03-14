@@ -89,7 +89,7 @@ class Plugin:
 
             # Video Pipeline
             if not self._rolling:
-                videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! mp4mux name=sink !"
+                videoPipeline = f"pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! {muxer} name=sink !"
             else:
                 videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
 
@@ -104,16 +104,14 @@ class Plugin:
                     self._tmpFilepath = f"{TMPLOCATION}/Decky-Recorder_{dateTime}.{self._fileformat}"
                 else:
                     logger.info("Setting tmp filepath")
-                    self._tmpFilepath = f"/dev/shm/Decky-Recorder-Rolling_%02d.{self._fileformat}"
+                    self._tmpFilepath = f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
                 if not self._rolling:
                     logger.info("Setting local filepath no rolling")
                     self._filepath = f"{self._localFilePath}/Decky-Recorder_{dateTime}.{self._fileformat}"
                     fileSinkPipeline = f" filesink location={self._tmpFilepath} "
                 else:
                     logger.info("Setting local filepath")
-                    fileSinkPipeline = " splitmuxsink name=sink muxer=mp4mux muxer-pad-map=x-pad-map,audio=vid location={} max-size-time=1000000000 max-files=480".format(
-                        self._tmpFilepath
-                    )
+                    fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._tmpFilepath} max-size-time=2000000000 max-files=240"
                 cmd = cmd + fileSinkPipeline
             else:
                 logger.info(f"Mode {self._mode} does not exist")
@@ -121,7 +119,12 @@ class Plugin:
 
             logger.info("Making audio pipeline")
             # Creates audio pipeline
-            monitor = subprocess.getoutput("pactl get-default-sink") + ".monitor"
+            audio_device_output = subprocess.getoutput("pactl get-default-sink")
+            logger.info(f"Audio device output {audio_device_output}")
+            for line in audio_device_output.split("\n"):
+                if "alsa_output" in line:
+                    monitor = line + ".monitor"
+                    break
             cmd = (
                 cmd
                 + f' pulsesrc device="Recording_{monitor}" ! audioconvert ! lamemp3enc target=bitrate bitrate={self._audioBitrate} cbr=true ! sink.audio_0'
@@ -192,6 +195,12 @@ class Plugin:
         if await Plugin.is_capturing(self):
             await Plugin.stop_capturing(self)
         self._rolling = False
+        try:
+            for path in list(Path(self._rollingRecordingFolder).glob(f"{self._rollingRecordingPrefix}*")):
+                os.remove(str(path))
+            logger.info("Deleted all files in rolling buffer")
+        except Exception:
+            logger.exception("Failed to delete rolling recording buffer files")
         logger.info("Disable rolling was called end")
 
     # Sets the current mode, supported modes are: localFile
@@ -260,7 +269,7 @@ class Plugin:
             await Plugin.saveConfig(self)
         return
 
-    async def save_rolling_recording(self, clip_duration: float = 30.0, prefix="/dev/shm"):
+    async def save_rolling_recording(self, clip_duration: float = 30.0):
         clip_duration = int(clip_duration)
         logger.info("Called save rolling function")
         if time.time() - self._last_clip_time < 5:
@@ -268,23 +277,23 @@ class Plugin:
             return 0
         try:
             clip_duration = float(clip_duration)
-            files = list(Path(prefix).glob("Decky-Recorder-Rolling*"))
+            files = list(Path(self._rollingRecordingFolder).glob(f"{self._rollingRecordingPrefix}*.{self._fileformat}"))
             times = [os.path.getctime(p) for p in files]
             ft = sorted(zip(files, times), key=lambda x: -x[1])
-            max_time = ft[0][1] - 1
+            max_time = time.time()
             files_to_stitch = []
             actual_dur = 0.0
             for f, ftime in ft:
                 if max_time - ftime <= clip_duration:
                     actual_dur = max_time - ftime
                     files_to_stitch.append(f)
-            with open(prefix + "/files", "w") as ff:
+            with open(self._rollingRecordingPrefix + "/files", "w") as ff:
                 for f in reversed(files_to_stitch):
                     ff.write(f"file {str(f)}\n")
 
             dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             ffmpeg = subprocess.Popen(
-                f"ffmpeg -f concat -safe 0 -i {prefix}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.mp4",
+                f"ffmpeg -f concat -safe 0 -i {prefix}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.{self._fileformat}",
                 shell=True,
                 stdout=std_out_file,
                 stderr=std_err_file,
