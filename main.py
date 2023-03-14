@@ -287,7 +287,7 @@ class Plugin:
                 if max_time - ftime <= clip_duration:
                     actual_dur = max_time - ftime
                     files_to_stitch.append(f)
-            with open(self._rollingRecordingPrefix + "/files", "w") as ff:
+            with open(self._rollingRecordingFolder + "/files", "w") as ff:
                 for f in reversed(files_to_stitch):
                     ff.write(f"file {str(f)}\n")
 
@@ -299,7 +299,7 @@ class Plugin:
                 stderr=std_err_file,
             )
             ffmpeg.wait()
-            os.remove(prefix + "/files")
+            os.remove(self._rollingRecordingFolder + "/files")
             self._last_clip_time = time.time()
             logger.info("finish save rolling function")
             return int(actual_dur)
