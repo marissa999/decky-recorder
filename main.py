@@ -49,9 +49,12 @@ class Plugin:
     _mode: str = "localFile"
     _audioBitrate: int = 128
     _localFilePath: str = "/home/deck/Videos"
+    _rollingRecordingFolder: str = "/dev/shm"
+    _rollingRecordingPrefix: str = "Decky-Recorder-Rolling"
     _fileformat: str = "mp4"
     _rolling: bool = False
     _last_clip_time: float = time.time()
+    _muxer_map = {"mp4": "mp4mux", "mkv": "matroskamux", "mov": "qtmux"}
 
     async def clear_rogue_gst_processes(self):
         gst_pids = find_gst_processes()
@@ -65,6 +68,8 @@ class Plugin:
     async def start_capturing(self):
         try:
             logger.info("Starting recording")
+            muxer = Plugin._muxer_map.get(self._fileformat, "mp4mux")
+            logger.info(f"Starting recording for {self._fileformat} with mux {muxer}")
             if await Plugin.is_capturing(self) == True:
                 logger.info("Error: Already recording")
                 return
