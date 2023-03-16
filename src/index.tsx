@@ -207,6 +207,16 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 		return true;
 	}
 
+	const disableFileformatDropdown = () => {
+		if (isCapturing) {
+			return true;
+		}
+		if (isRolling) {
+			return true;
+		}
+		return false;
+	}
+
 	const rollingToggled = async () => {
 		logic.toggleRolling(isRolling);
 		setCapturing(!isRolling);
@@ -255,6 +265,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 			<PanelSectionRow>
 				<Dropdown
 					menuLabel="Select the video file format"
+					disabled={disableFileformatDropdown()}
 					strDefaultLabel={localFileFormat.label as string}
 					rgOptions={formatOptions}
 					selectedOption={localFileFormat}
