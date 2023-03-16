@@ -16,6 +16,7 @@ Please do not judge my code, I am bad!
 This plugin is still in WIP.
 
 ### Thanks
+- Huge huge thanks to [@safijari] for fully implementing Rolling Recording/Replay Mode (https://github.com/safijari/decky-recorder/tree/rolling-record)
 - [@Newbytee](https://github.com/Newbytee) for pointing out that I forgot the "-e"-option in the gst-launch-1.0-command
 - Avery for the original Recapture Plugin
 - Epictek for inspiring me to setup a proper build process (https://github.com/Epictek/DeckyStream I found out about this plugin when I was basically already done q.q)
