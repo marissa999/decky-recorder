@@ -25,8 +25,8 @@ std_out_file = open("/tmp/decky-recorder-std-out.log", "w")
 std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
 
 try:
-    import psutil
     sys.path.append("/home/deck/homebrew/plugins/decky-recorder/bin/psutil")
+    import psutil
     logger.info("Successfully loaded psutil")
 except Exception:
     logger.info(traceback.format_exc())
