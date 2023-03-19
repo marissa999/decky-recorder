@@ -1,6 +1,6 @@
 # Decky Recorder
 
-![Decky-Recorder Example Screenshot](decky-recorder-screenshot.jpg)
+![Decky-Recorder Example Screenshot](decky-recorder-screenshot.png)
 
 This plugin is heavily based on the Recapture-Plugin for Crankshaft from Avery: https://git.sr.ht/~avery/recapture
 In particular a lot of code for the gst-launch-1.0-command itself and the additionally needed dependencies were taken from the Recapture-Plugin.
