@@ -39,3 +39,11 @@ I only tested this on Arch Linux (which I use, btw!)
 - WIP: Adding the option to toggle game audio + mic audio (Current state: You can enable mic audio, but not disable game audio. Figure out a way to filter and remove audio from pipewiresrc?)
 - WIP: Figuring out why sometimes recording stutter/audio + video don't align. Might require re-transcoding with ffmpeg to re-align dts-stuff? Dunno (Current state: FFmpeg will now copy the files from tmpfs to the ~/Videos-folder and fix dts while doing so. Not working: FFmpeg needs to run AFTER gst-launcher-1.0 finished, but because gst-launcher-1.0 is running through a python subprocess with shell=true this is apparently not that easy and I can not just wait for it?!)
 - WIP: Finishing RTSP-Server-Sink (Current state: UI is done, I should have all libraries? I think? And if not I can easily add missing libraries. But... What is the actual pipeline that I need?)
+
+### FAQs
+#### Can I save to the SD card / some other location?
+This is not yet configurable through the plugin but yes. What you would do instead is
+1. Move your `Videos` folder to the new destination (e.g. `/run/media/mmcblk0p1`)
+2. Make a symbolic link (e.g. `ln -s /run/media/mmcblk0p1 /home/deck/Videos`)
+
+Now it'll look like there's a Videos folder on your ssd but the data will actually be in the SD card.
