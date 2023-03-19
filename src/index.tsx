@@ -85,7 +85,7 @@ class DeckyRecorderLogic
 			if (Date.now() - this.pressedAt < 2000) {
 				continue;
 			}
-			if (inputs.ulButtons && inputs.ulButtons & (1 << 13) && inputs.ulButtons & (1 << 4)) {
+			if (inputs.ulButtons && inputs.ulButtons & (1 << 13) && inputs.ulButtons & (1 << 14)) {
 				this.pressedAt = Date.now();
 				(Router as any).DisableHomeAndQuickAccessButtons();
 				setTimeout(() => {
@@ -95,7 +95,7 @@ class DeckyRecorderLogic
 				if (isRolling.result as boolean) {
 					await this.saveRollingRecording(30);
 				} else {
-					await this.notify("Enabling replay mode", 1500, "Steam + Y to save last 30 seconds");
+					await this.notify("Enabling replay mode", 1500, "Steam + Start to save last 30 seconds");
 					this.toggleRolling(false);
 				}
 			}
@@ -248,7 +248,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 					checked={isRolling}
 					onChange={(e) => { setRolling(e); rollingToggled(); }}
 				/>
-				<div>Steam + Y saves a 30 second clip in replay mode. If replay mode is off, this shortcut will enable it.</div>
+				<div>Steam + Start saves a 30 second clip in replay mode. If replay mode is off, this shortcut will enable it.</div>
 				{(!isRolling) ?
 					<ButtonItem
 						label={getLabelText()}
