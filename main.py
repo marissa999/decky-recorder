@@ -77,14 +77,14 @@ class Plugin:
                 os.kill(pid, signal.SIGKILL)
 
     @asyncio.coroutine
-    def watchdog(self):
+    async def watchdog(self):
         while True:
             try:
                 if not in_gamemode() and await Plugin.is_capturing(self):
-                    await Plugin.stop_capturing()
+                    await Plugin.stop_capturing(self)
             except Exception:
                 logger.exception("watchdog")
-            yield from asyncio.sleep(5)
+            await asyncio.sleep(5)
 
     # Starts the capturing process
     async def start_capturing(self):
@@ -172,8 +172,11 @@ class Plugin:
         self._recording_process = None
         proc.send_signal(signal.SIGINT)
         logger.info("Sigin sent. Waiting...")
-        proc.wait(timeout=5)
-        Plugin.clear_rogue_gst_processes()
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            logger.warn("Could not interrupt gstreamer, killing instead")
+            await Plugin.clear_rogue_gst_processes(self)
         logger.info("Waiting finished. Recording stopped!")
 
         if not self._rolling:
