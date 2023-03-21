@@ -81,7 +81,7 @@ class Plugin:
         while True:
             try:
                 in_gm = in_gamemode()
-                is_cap = Plugin.is_capturing(self, verbose=False)
+                is_cap = await Plugin.is_capturing(self, verbose=False)
                 if not in_gm and is_cap:
                     await Plugin.stop_capturing(self)
             except Exception:
