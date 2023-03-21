@@ -6,6 +6,7 @@ import signal
 import time
 from datetime import datetime
 from pathlib import Path
+import asyncio
 
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/bin"
 GSTPLUGINSPATH = DEPSPATH + "/gstreamer-1.0"
@@ -31,7 +32,6 @@ try:
 except Exception:
     logger.info(traceback.format_exc())
 
-
 def find_gst_processes():
     pids = []
     for child in psutil.process_iter():
@@ -39,6 +39,11 @@ def find_gst_processes():
             pids.append(child.pid)
     return pids
 
+def in_gamemode():
+    for child in psutil.process_iter():
+        if "gamescope-session" in " ".join(child.cmdline()):
+            return True
+    return False
 
 class Plugin:
     _recording_process = None
@@ -54,7 +59,14 @@ class Plugin:
     _fileformat: str = "mp4"
     _rolling: bool = False
     _last_clip_time: float = time.time()
+    _watchdog_task = None
     _muxer_map = {"mp4": "mp4mux", "mkv": "matroskamux", "mov": "qtmux"}
+
+    async def _main(self):
+        await Plugin.loadConfig(self)
+        loop = asyncio.get_event_loop()
+        _watchdog_task = loop.create_task(Plugin.watchdog(self))
+        return
 
     async def clear_rogue_gst_processes(self):
         gst_pids = find_gst_processes()
@@ -63,6 +75,16 @@ class Plugin:
             if pid != curr_pid:
                 logger.info(f"Killing rogue process {pid}")
                 os.kill(pid, signal.SIGKILL)
+
+    @asyncio.coroutine
+    def watchdog(self):
+        while True:
+            try:
+                if not in_gamemode() and await Plugin.is_capturing(self):
+                    await Plugin.stop_capturing()
+            except Exception:
+                logger.exception("watchdog")
+            yield from asyncio.sleep(5)
 
     # Starts the capturing process
     async def start_capturing(self):
@@ -146,12 +168,13 @@ class Plugin:
             logger.info("Error: No recording process to stop")
             return
         logger.info("Sending sigin")
-        self._recording_process.send_signal(signal.SIGINT)
-        logger.info("Sigin sent. Waiting...")
-        self._recording_process.wait()
-        logger.info("Waiting finished")
+        proc = self._recording_process
         self._recording_process = None
-        logger.info("Recording stopped!")
+        proc.send_signal(signal.SIGINT)
+        logger.info("Sigin sent. Waiting...")
+        proc.wait(timeout=5)
+        Plugin.clear_rogue_gst_processes()
+        logger.info("Waiting finished. Recording stopped!")
 
         if not self._rolling:
             # if recording was a local file and not rolling
@@ -255,10 +278,6 @@ class Plugin:
     async def saveConfig(self):
         logger.info("Saving config")
         ### TODO: IMPLEMENT ###
-        return
-
-    async def _main(self):
-        await Plugin.loadConfig(self)
         return
 
     async def _unload(self):
