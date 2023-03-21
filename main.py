@@ -80,7 +80,9 @@ class Plugin:
     async def watchdog(self):
         while True:
             try:
-                if not in_gamemode() and await Plugin.is_capturing(self):
+                in_gm = in_gamemode()
+                is_cap = Plugin.is_capturing(self, verbose=False)
+                if not in_gm and is_cap:
                     await Plugin.stop_capturing(self)
             except Exception:
                 logger.exception("watchdog")
@@ -195,11 +197,14 @@ class Plugin:
                     logger.error("Could not delete tmp file" + traceback.format_exc())
                 self._tmpFilepath = None
                 self._filepath = None
+
+        self._rolling = False
         return
 
     # Returns true if the plugin is currently capturing
-    async def is_capturing(self):
-        logger.info("Is capturing? " + str(self._recording_process is not None))
+    async def is_capturing(self, verbose=True):
+        if verbose:
+            logger.info("Is capturing? " + str(self._recording_process is not None))
         return self._recording_process is not None
 
     async def is_rolling(self):
