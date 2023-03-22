@@ -117,9 +117,9 @@ class Plugin:
             )
 
             # Video Pipeline
-            if not self._rolling:
+            if self._mode == "localFile":
                 videoPipeline = f"pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! {muxer} name=sink !"
-            else:
+            elif self._mode == "replayMode":
                 videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
 
             cmd = "{} {}".format(start_command, videoPipeline)
@@ -269,11 +269,11 @@ class Plugin:
         ### TODO: IMPLEMENT ###
         self._settings = SettingsManager(name="decky-loader-settings", settings_directory=settingsDir)
         self._settings.read()
-        self._mode = "localFile"
         self._audioBitrate = 128
 
         self._localFilePath = self._settings.getSetting("output_folder", "/home/deck/Videos")
         self._fileformat = self._settings.getSetting("format", "mp4")
+        self._mode = self._settings.getSetting("mode", "localFile")
         self._rolling = self._settings.getSetting("rolling", False)
 
         # Need this for initialization only honestly
@@ -284,21 +284,8 @@ class Plugin:
         logger.info("Saving config")
         self._settings.setSetting("format", self._fileformat)
         self._settings.setSetting("output_folder", self._localFilePath)
+        self._settings.setSetting("mode", self._mode)
         self._settings.setSetting("rolling", self._rolling)
-        return
-
-    async def _main(self):
-        await Plugin.loadConfig(self)
-        if self._rolling:
-            await Plugin.start_capturing(self)
-        return
-
-    async def _unload(self):
-        logger.info("Unload was called")
-        if await Plugin.is_capturing(self) == True:
-            logger.info("Cleaning up")
-            await Plugin.stop_capturing(self)
-            await Plugin.saveConfig(self)
         return
 
     async def save_rolling_recording(self, clip_duration: float = 30.0):
@@ -338,3 +325,17 @@ class Plugin:
         except Exception:
             logger.info(traceback.format_exc())
         return -1
+
+    async def _main(self):
+        await Plugin.loadConfig(self)
+        if self._rolling:
+            await Plugin.start_capturing(self)
+        return
+
+    async def _unload(self):
+        logger.info("Unload was called")
+        if await Plugin.is_capturing(self) == True:
+            logger.info("Cleaning up")
+            await Plugin.stop_capturing(self)
+            await Plugin.saveConfig(self)
+        return
