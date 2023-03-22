@@ -27,6 +27,7 @@ std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
 try:
     sys.path.append("/home/deck/homebrew/plugins/decky-recorder/bin/psutil")
     import psutil
+
     logger.info("Successfully loaded psutil")
 except Exception:
     logger.info(traceback.format_exc())
@@ -81,11 +82,7 @@ class Plugin:
             os.environ["HOME"] = "/home/deck"
 
             # Start command including plugin path and ld_lib path
-            start_command = (
-                "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(
-                    GSTPLUGINSPATH, DEPSPATH
-                )
-            )
+            start_command = f"GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={GSTPLUGINSPATH} LD_LIBRARY_PATH={DEPSPATH} {DEPSPATH}/bin/bin/gst-launch-1.0 -e -vvv"
 
             # Video Pipeline
             if not self._rolling:
