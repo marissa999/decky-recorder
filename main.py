@@ -28,6 +28,7 @@ std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
 try:
     sys.path.append("/home/deck/homebrew/plugins/decky-recorder/bin/psutil")
     import psutil
+
     logger.info("Successfully loaded psutil")
 except Exception:
     logger.info(traceback.format_exc())
@@ -47,10 +48,7 @@ def in_gamemode():
 
 class Plugin:
     _recording_process = None
-
-    _tmpFilepath: str = None
     _filepath: str = None
-
     _mode: str = "localFile"
     _audioBitrate: int = 128
     _localFilePath: str = "/home/deck/Videos"
@@ -123,19 +121,18 @@ class Plugin:
             if self._mode == "localFile":
                 logger.info("Local File Recording")
                 dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                if not self._rolling:
-                    logger.info("Setting tmp filepath no rolling")
-                    self._tmpFilepath = f"{TMPLOCATION}/Decky-Recorder_{dateTime}.{self._fileformat}"
-                else:
+                if self._rolling:
                     logger.info("Setting tmp filepath")
-                    self._tmpFilepath = f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
+                    self._filepath = (
+                        f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
+                    )
                 if not self._rolling:
                     logger.info("Setting local filepath no rolling")
                     self._filepath = f"{self._localFilePath}/Decky-Recorder_{dateTime}.{self._fileformat}"
-                    fileSinkPipeline = f" filesink location={self._tmpFilepath} "
+                    fileSinkPipeline = f" filesink location={self._filepath} "
                 else:
                     logger.info("Setting local filepath")
-                    fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._tmpFilepath} max-size-time=2000000000 max-files=240"
+                    fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=2000000000 max-files=240"
                 cmd = cmd + fileSinkPipeline
             else:
                 logger.info(f"Mode {self._mode} does not exist")
@@ -181,24 +178,6 @@ class Plugin:
             await Plugin.clear_rogue_gst_processes(self)
         logger.info("Waiting finished. Recording stopped!")
 
-        if not self._rolling:
-            # if recording was a local file and not rolling
-            if self._mode == "localFile":
-                logger.info("Repairing file")
-                ffmpegCmd = f"ffmpeg -i {self._tmpFilepath} -c copy {self._filepath}"
-                logger.info("Command: " + ffmpegCmd)
-                ffmpeg = subprocess.Popen(ffmpegCmd, shell=True, stdout=std_out_file, stderr=std_err_file)
-                ffmpeg.wait()
-                logger.info("File copied with ffmpeg")
-                try:
-                    os.remove(self._tmpFilepath)
-                    logger.info("Tmpfile deleted")
-                except Exception:
-                    logger.error("Could not delete tmp file" + traceback.format_exc())
-                self._tmpFilepath = None
-                self._filepath = None
-
-        self._rolling = False
         return
 
     # Returns true if the plugin is currently capturing

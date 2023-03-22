@@ -127,7 +127,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 	const formatOptionMp4 = { data: "mp4", label: "MP4" } as SingleDropdownOption
 	const formatOptionMkv = { data: "mkv", label: "Matroska (.mkv)" } as SingleDropdownOption;
 	const formatOptionMov = { data: "mov", label: "QuickTime (.mov)" } as SingleDropdownOption;
-	const formatOptions: DropdownOption[] = [formatOptionMp4, formatOptionMkv, formatOptionMov];
+	const formatOptions: DropdownOption[] = [formatOptionMkv, formatOptionMp4, formatOptionMov];
 	const [localFileFormat, setLocalFileFormat] = useState<DropdownOption>(formatOptionMp4);
 
 	const initState = async () => {
