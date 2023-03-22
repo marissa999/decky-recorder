@@ -6,6 +6,11 @@ import signal
 import time
 from datetime import datetime
 from pathlib import Path
+from settings import SettingsManager
+
+# Get environment variable
+settingsDir = os.environ["DECKY_PLUGIN_SETTINGS_DIR"]
+
 
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/bin"
 GSTPLUGINSPATH = DEPSPATH + "/gstreamer-1.0"
@@ -55,6 +60,7 @@ class Plugin:
     _rolling: bool = False
     _last_clip_time: float = time.time()
     _muxer_map = {"mp4": "mp4mux", "mkv": "matroskamux", "mov": "qtmux"}
+    _settings = None
 
     async def clear_rogue_gst_processes(self):
         gst_pids = find_gst_processes()
@@ -188,6 +194,7 @@ class Plugin:
             await Plugin.stop_capturing(self)
         self._rolling = True
         await Plugin.start_capturing(self)
+        await Plugin.saveConfig(self)
         logger.info("Enable rolling was called end")
 
     async def disable_rolling(self):
@@ -195,6 +202,7 @@ class Plugin:
         if await Plugin.is_capturing(self):
             await Plugin.stop_capturing(self)
         self._rolling = False
+        await Plugin.saveConfig(self)
         try:
             for path in list(Path(self._rollingRecordingFolder).glob(f"{self._rollingRecordingPrefix}*")):
                 os.remove(str(path))
@@ -227,6 +235,7 @@ class Plugin:
     async def set_local_filepath(self, localFilePath: str):
         logger.info("New local filepath: " + localFilePath)
         self._localFilePath = localFilePath
+        await Plugin.saveConfig(self)
 
     # Gets the local FilePath
     async def get_local_filepath(self):
@@ -237,6 +246,7 @@ class Plugin:
     async def set_local_fileformat(self, fileformat: str):
         logger.info("New local file format: " + fileformat)
         self._fileformat = fileformat
+        await Plugin.saveConfig(self)
 
     # Gets the file format
     async def get_local_fileformat(self):
@@ -244,17 +254,26 @@ class Plugin:
         return self._fileformat
 
     async def loadConfig(self):
-        logger.info("Loading config")
+        logger.info('Loading settings from: {}'.format(os.path.join(settingsDir, 'settings.json')))
         ### TODO: IMPLEMENT ###
+        self._settings = SettingsManager(name="decky-loader-settings", settings_directory=settingsDir)
+        self._settings.read()
         self._mode = "localFile"
         self._audioBitrate = 128
-        self._localFilePath = "/home/deck/Videos"
-        self._fileformat = "mp4"
+
+        self._localFilePath = self._settings.getSetting("output_folder", "/home/deck/Videos")
+        self._fileformat = self._settings.getSetting("format", "mp4")
+        self._rolling = self._settings.getSetting("rolling", False)
+
+        # Need this for initialization only honestly
+        await Plugin.saveConfig(self)
         return
 
     async def saveConfig(self):
         logger.info("Saving config")
-        ### TODO: IMPLEMENT ###
+        self._settings.setSetting("format", self._fileformat)
+        self._settings.setSetting("output_folder", self._localFilePath)
+        self._settings.setSetting("rolling", self._rolling)
         return
 
     async def _main(self):
