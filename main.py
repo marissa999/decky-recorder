@@ -278,6 +278,8 @@ class Plugin:
 
     async def _main(self):
         await Plugin.loadConfig(self)
+        if self._rolling:
+            await Plugin.start_capturing(self)
         return
 
     async def _unload(self):
