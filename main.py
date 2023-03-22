@@ -12,6 +12,8 @@ from settings import SettingsManager
 settingsDir = os.environ["DECKY_PLUGIN_SETTINGS_DIR"]
 
 
+import asyncio
+
 DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/bin"
 GSTPLUGINSPATH = DEPSPATH + "/gstreamer-1.0"
 TMPLOCATION = "/tmp"
@@ -32,10 +34,10 @@ std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
 try:
     sys.path.append("/home/deck/homebrew/plugins/decky-recorder/bin/psutil")
     import psutil
+
     logger.info("Successfully loaded psutil")
 except Exception:
     logger.info(traceback.format_exc())
-
 
 def find_gst_processes():
     pids = []
@@ -44,13 +46,15 @@ def find_gst_processes():
             pids.append(child.pid)
     return pids
 
+def in_gamemode():
+    for child in psutil.process_iter():
+        if "gamescope-session" in " ".join(child.cmdline()):
+            return True
+    return False
 
 class Plugin:
     _recording_process = None
-
-    _tmpFilepath: str = None
     _filepath: str = None
-
     _mode: str = "localFile"
     _audioBitrate: int = 128
     _localFilePath: str = "/home/deck/Videos"
@@ -59,8 +63,15 @@ class Plugin:
     _fileformat: str = "mp4"
     _rolling: bool = False
     _last_clip_time: float = time.time()
+    _watchdog_task = None
     _muxer_map = {"mp4": "mp4mux", "mkv": "matroskamux", "mov": "qtmux"}
     _settings = None
+
+    async def _main(self):
+        await Plugin.loadConfig(self)
+        loop = asyncio.get_event_loop()
+        _watchdog_task = loop.create_task(Plugin.watchdog(self))
+        return
 
     async def clear_rogue_gst_processes(self):
         gst_pids = find_gst_processes()
@@ -69,6 +80,18 @@ class Plugin:
             if pid != curr_pid:
                 logger.info(f"Killing rogue process {pid}")
                 os.kill(pid, signal.SIGKILL)
+
+    @asyncio.coroutine
+    async def watchdog(self):
+        while True:
+            try:
+                in_gm = in_gamemode()
+                is_cap = await Plugin.is_capturing(self, verbose=False)
+                if not in_gm and is_cap:
+                    await Plugin.stop_capturing(self)
+            except Exception:
+                logger.exception("watchdog")
+            await asyncio.sleep(5)
 
     # Starts the capturing process
     async def start_capturing(self):
@@ -105,19 +128,18 @@ class Plugin:
             if self._mode == "localFile":
                 logger.info("Local File Recording")
                 dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                if not self._rolling:
-                    logger.info("Setting tmp filepath no rolling")
-                    self._tmpFilepath = f"{TMPLOCATION}/Decky-Recorder_{dateTime}.{self._fileformat}"
-                else:
+                if self._rolling:
                     logger.info("Setting tmp filepath")
-                    self._tmpFilepath = f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
+                    self._filepath = (
+                        f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
+                    )
                 if not self._rolling:
                     logger.info("Setting local filepath no rolling")
                     self._filepath = f"{self._localFilePath}/Decky-Recorder_{dateTime}.{self._fileformat}"
-                    fileSinkPipeline = f" filesink location={self._tmpFilepath} "
+                    fileSinkPipeline = f" filesink location={self._filepath} "
                 else:
                     logger.info("Setting local filepath")
-                    fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._tmpFilepath} max-size-time=2000000000 max-files=240"
+                    fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=2000000000 max-files=240"
                 cmd = cmd + fileSinkPipeline
             else:
                 logger.info(f"Mode {self._mode} does not exist")
@@ -152,34 +174,23 @@ class Plugin:
             logger.info("Error: No recording process to stop")
             return
         logger.info("Sending sigin")
-        self._recording_process.send_signal(signal.SIGINT)
-        logger.info("Sigin sent. Waiting...")
-        self._recording_process.wait()
-        logger.info("Waiting finished")
+        proc = self._recording_process
         self._recording_process = None
-        logger.info("Recording stopped!")
+        proc.send_signal(signal.SIGINT)
+        logger.info("Sigin sent. Waiting...")
+        try:
+            proc.wait(timeout=10)
+        except Exception:
+            logger.warn("Could not interrupt gstreamer, killing instead")
+            await Plugin.clear_rogue_gst_processes(self)
+        logger.info("Waiting finished. Recording stopped!")
 
-        if not self._rolling:
-            # if recording was a local file and not rolling
-            if self._mode == "localFile":
-                logger.info("Repairing file")
-                ffmpegCmd = f"ffmpeg -i {self._tmpFilepath} -c copy {self._filepath}"
-                logger.info("Command: " + ffmpegCmd)
-                ffmpeg = subprocess.Popen(ffmpegCmd, shell=True, stdout=std_out_file, stderr=std_err_file)
-                ffmpeg.wait()
-                logger.info("File copied with ffmpeg")
-                try:
-                    os.remove(self._tmpFilepath)
-                    logger.info("Tmpfile deleted")
-                except Exception:
-                    logger.error("Could not delete tmp file" + traceback.format_exc())
-                self._tmpFilepath = None
-                self._filepath = None
         return
 
     # Returns true if the plugin is currently capturing
-    async def is_capturing(self):
-        logger.info("Is capturing? " + str(self._recording_process is not None))
+    async def is_capturing(self, verbose=True):
+        if verbose:
+            logger.info("Is capturing? " + str(self._recording_process is not None))
         return self._recording_process is not None
 
     async def is_rolling(self):
