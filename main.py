@@ -175,7 +175,7 @@ class Plugin:
         proc.send_signal(signal.SIGINT)
         logger.info("Sigin sent. Waiting...")
         try:
-            proc.wait(timeout=5)
+            proc.wait(timeout=10)
         except Exception:
             logger.warn("Could not interrupt gstreamer, killing instead")
             await Plugin.clear_rogue_gst_processes(self)
