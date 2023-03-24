@@ -189,6 +189,12 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 		}
 	}
 
+	const pickFolder = async () => {
+		const filePickerResponse = await serverAPI.openFilePicker(localFilePath, false);
+		setLocalFilePath(filePickerResponse.path)
+		await serverAPI.callPluginMethod('set_local_filepath', {localFilePath: filePickerResponse.path});
+	}
+
 	const rollingRecordButtonPress = async (duration: number) => {
 		setButtonsEnabled(false);
 		setTimeout(() => {
@@ -223,7 +229,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 		setRolling(!isRolling);
 	}
 
-	const getLabelText = (): string => {
+	const getFilePickerText = (): string => {
 		return "Recordings will be saved to " + localFilePath;
 	}
 
@@ -234,6 +240,8 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 			return "Stop Recording";
 		}
 	}
+
+
 
 	useEffect(() => {
 		initState();
@@ -250,15 +258,29 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 				/>
 				<div>Steam + Start saves a 30 second clip in replay mode. If replay mode is off, this shortcut will enable it.</div>
 				{(!isRolling) ?
-					<ButtonItem
-						label={getLabelText()}
-						bottomSeparator="none"
-						layout="below"
-						onClick={() => {
-							recordingButtonPress();
-						}}>
-						{getRecordingButtonText()}
-					</ButtonItem> : null
+					<div>
+
+						<ButtonItem
+							bottomSeparator="none"
+							layout="below"
+							onClick={() => {
+								recordingButtonPress();
+							}}>
+							{getRecordingButtonText()}
+						</ButtonItem>
+
+						<ButtonItem
+							label={getFilePickerText()}
+							bottomSeparator="none"
+							layout="below"
+							onClick={() => {
+								pickFolder();
+							}}>
+							{"Set folder"}
+						</ButtonItem>
+
+
+					</div> : null
 				}
 			</PanelSectionRow>
 
@@ -304,5 +326,6 @@ export default definePlugin((serverApi: ServerAPI) => {
 		onDismount() {
 			input_register.unregister();
 		},
+		alwaysRender: true
 	};
 });
