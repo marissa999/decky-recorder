@@ -67,12 +67,6 @@ class Plugin:
     _muxer_map = {"mp4": "mp4mux", "mkv": "matroskamux", "mov": "qtmux"}
     _settings = None
 
-    async def _main(self):
-        await Plugin.loadConfig(self)
-        loop = asyncio.get_event_loop()
-        _watchdog_task = loop.create_task(Plugin.watchdog(self))
-        return
-
     async def clear_rogue_gst_processes(self):
         gst_pids = find_gst_processes()
         curr_pid = self._recording_process.pid if self._recording_process is not None else None
@@ -87,6 +81,7 @@ class Plugin:
             try:
                 in_gm = in_gamemode()
                 is_cap = await Plugin.is_capturing(self, verbose=False)
+                print(in_gm, is_cap)
                 if not in_gm and is_cap:
                     await Plugin.stop_capturing(self)
             except Exception:
@@ -288,6 +283,8 @@ class Plugin:
         return
 
     async def _main(self):
+        loop = asyncio.get_event_loop()
+        _watchdog_task = loop.create_task(Plugin.watchdog(self))
         await Plugin.loadConfig(self)
         if self._rolling:
             await Plugin.start_capturing(self)
