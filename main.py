@@ -77,7 +77,9 @@ class Plugin:
 
     @asyncio.coroutine
     async def watchdog(self):
+        print("in watchdog")
         while True:
+            print("watchdog ping")
             try:
                 in_gm = in_gamemode()
                 is_cap = await Plugin.is_capturing(self, verbose=False)
@@ -284,7 +286,7 @@ class Plugin:
 
     async def _main(self):
         loop = asyncio.get_event_loop()
-        _watchdog_task = loop.create_task(Plugin.watchdog(self))
+        self._watchdog_task = loop.create_task(Plugin.watchdog(self))
         await Plugin.loadConfig(self)
         if self._rolling:
             await Plugin.start_capturing(self)
