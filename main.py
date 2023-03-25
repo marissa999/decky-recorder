@@ -53,15 +53,19 @@ def in_gamemode():
     return False
 
 class Plugin:
+
+    # Options
+    _localFilePath: str = "/home/deck/Videos"
+    _mode: str = "localFile"
+    _fileformat: str = "mp4"
+    _bufferLength: int = 30
+    _audioBitrate: int = 128
+    _rolling: bool = False
+
     _recording_process = None
     _filepath: str = None
-    _mode: str = "localFile"
-    _audioBitrate: int = 128
-    _localFilePath: str = "/home/deck/Videos"
     _rollingRecordingFolder: str = "/dev/shm"
     _rollingRecordingPrefix: str = "Decky-Recorder-Rolling"
-    _fileformat: str = "mp4"
-    _rolling: bool = False
     _last_clip_time: float = time.time()
     _watchdog_task = None
     _muxer_map = {"mp4": "mp4mux", "mkv": "matroskamux", "mov": "qtmux"}
@@ -226,7 +230,7 @@ class Plugin:
     async def set_current_mode(self, mode: str):
         logger.info("New mode: " + mode)
         self._mode = mode
-        self._settings.setSetting("mode", self._mode)
+        await Plugin.saveConfig(self)
 
     # Gets the current mode
     async def get_current_mode(self):
@@ -247,7 +251,7 @@ class Plugin:
     async def set_local_filepath(self, localFilePath: str):
         logger.info("New local filepath: " + localFilePath)
         self._localFilePath = localFilePath
-        self._settings.setSetting("output_folder", self._localFilePath)
+        await Plugin.saveConfig(self)
 
     # Gets the local FilePath
     async def get_local_filepath(self):
@@ -258,27 +262,36 @@ class Plugin:
     async def set_local_fileformat(self, fileformat: str):
         logger.info("New local file format: " + fileformat)
         self._fileformat = fileformat
-        self._settings.setSetting("format", self._fileformat)
-        self._settings.setSetting("output_folder", self._localFilePath)
-        self._settings.setSetting("mode", self._mode)
-        self._settings.setSetting("rolling", self._rolling)
+        await Plugin.saveConfig(self)
 
     # Gets the file format
     async def get_local_fileformat(self):
         logger.info("Current local file format: " + self._fileformat)
         return self._fileformat
 
+    # Sets local file format
+    async def set_buffer_length(self, bufferLength: int):
+        logger.info("New buffer length: " + bufferLength)
+        self._bufferLength = bufferLength
+        await Plugin.saveConfig(self)
+
+    # Gets the file format
+    async def get_buffer_length(self):
+        logger.info("Current buffer length: " + self._bufferLength)
+        return self._bufferLength
+
     async def loadConfig(self):
         logger.info('Loading settings from: {}'.format(os.path.join(settingsDir, 'settings.json')))
-        ### TODO: IMPLEMENT ###
+
         self._settings = SettingsManager(name="decky-loader-settings", settings_directory=settingsDir)
         self._settings.read()
-        self._audioBitrate = 128
 
         self._localFilePath = self._settings.getSetting("output_folder", "/home/deck/Videos")
         self._fileformat = self._settings.getSetting("format", "mp4")
         self._mode = self._settings.getSetting("mode", "localFile")
         self._rolling = self._settings.getSetting("rolling", False)
+        self._audioBitrate = self._settings.getSetting("audioBitrate", 128)
+        self._bufferLength = self._settings.getSetting("bufferLength", 30)
 
         # Need this for initialization only honestly
         await Plugin.saveConfig(self)
@@ -289,6 +302,8 @@ class Plugin:
         self._settings.setSetting("format", self._fileformat)
         self._settings.setSetting("output_folder", self._localFilePath)
         self._settings.setSetting("mode", self._mode)
+        self._settings.setSetting("audioBitrate", self._audioBitrate)
+        self._settings.setSetting("bufferLength", self._bufferLength)
         self._settings.setSetting("rolling", self._rolling)
         return
 

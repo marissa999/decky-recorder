@@ -27,8 +27,8 @@ const DeckyRecorder: VFC<{
 	logic: DeckyRecorderLogic
 }> = ({ serverAPI, logic }) => {
 
-	const localRecordingMode = { data: "localFile", label: "Local Recording" } as SingleDropdownOption
-	const replayMode = { data: "replayMode", label: "Replay Mode" } as SingleDropdownOption
+	const localRecordingMode = { data: "localFile" as string, label: "Local Recording" } as SingleDropdownOption
+	const replayMode = { data: "replayMode" as string, label: "Replay Mode" } as SingleDropdownOption
 	const modeOptions: DropdownOption[] = [localRecordingMode, replayMode];
 	const [mode, setMode] = useState<DropdownOption>(localRecordingMode);
 
