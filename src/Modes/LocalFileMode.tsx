@@ -6,19 +6,10 @@ import {
 } from "decky-frontend-lib";
 
 import {
-	VFC,
-	useState,
-	useEffect
+	VFC
 } from "react";
 
-export const LocalFileMode: VFC<{ serverAPI: ServerAPI}> = ({serverAPI}) => {
-
-	const [isCapturing, setCapturing] = useState<boolean>(false);
-
-	const initState = async () => {
-		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_capturing', {});
-		setCapturing(getIsCapturingResponse.result as boolean);
-	}
+export const LocalFileMode: VFC<{ serverAPI: ServerAPI, isCapturing: boolean, setCapturing: React.Dispatch<React.SetStateAction<boolean>>}> = ({serverAPI, isCapturing, setCapturing}) => {
 
 	const recordingButtonPress = async () => {
 		if (isCapturing === false) {
@@ -38,10 +29,6 @@ export const LocalFileMode: VFC<{ serverAPI: ServerAPI}> = ({serverAPI}) => {
 			return "Stop Recording";
 		}
 	}
-
-	useEffect(() => {
-		initState();
-	}, []);
 
 	return (
 		<PanelSectionRow>

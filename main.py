@@ -226,6 +226,7 @@ class Plugin:
     async def set_current_mode(self, mode: str):
         logger.info("New mode: " + mode)
         self._mode = mode
+        self._settings.setSetting("mode", self._mode)
 
     # Gets the current mode
     async def get_current_mode(self):
@@ -246,7 +247,7 @@ class Plugin:
     async def set_local_filepath(self, localFilePath: str):
         logger.info("New local filepath: " + localFilePath)
         self._localFilePath = localFilePath
-        await Plugin.saveConfig(self)
+        self._settings.setSetting("output_folder", self._localFilePath)
 
     # Gets the local FilePath
     async def get_local_filepath(self):
@@ -257,7 +258,10 @@ class Plugin:
     async def set_local_fileformat(self, fileformat: str):
         logger.info("New local file format: " + fileformat)
         self._fileformat = fileformat
-        await Plugin.saveConfig(self)
+        self._settings.setSetting("format", self._fileformat)
+        self._settings.setSetting("output_folder", self._localFilePath)
+        self._settings.setSetting("mode", self._mode)
+        self._settings.setSetting("rolling", self._rolling)
 
     # Gets the file format
     async def get_local_fileformat(self):

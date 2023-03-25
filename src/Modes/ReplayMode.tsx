@@ -14,9 +14,12 @@ import {
 
 import { DeckyRecorderLogic } from "../DeckyRecorderLogic";
 
-export const ReplayMode: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = ({serverAPI, logic}) => {
+export const ReplayMode: VFC<{ 
+	serverAPI: ServerAPI, 
+	isRolling: boolean
+	setRolling: React.Dispatch<React.SetStateAction<boolean>>, 
+	logic: DeckyRecorderLogic }> = ({serverAPI, isRolling, setRolling, logic}) => {
 
-	const [isRolling, setRolling] = useState<boolean>(false);	
 	const [isRollingAutoStart, setRollingAutoStart] = useState<boolean>(false);	
  
 	const initState = async () => {

@@ -84,12 +84,12 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 			</PanelSectionRow>
 
 			{(mode.data == localRecordingMode.data)
-				? <LocalFileMode serverAPI={serverAPI} /> : null}
+				? <LocalFileMode serverAPI={serverAPI} isCapturing={isCapturing} setCapturing={setCapturing} /> : null}
 
 			{(mode.data == replayMode.data)
-				? <ReplayMode serverAPI={serverAPI} logic={logic} /> : null}
+				? <ReplayMode serverAPI={serverAPI} isRolling={isRolling} setRolling={setRolling} logic={logic} /> : null}
 
-			<GeneralSettings serverAPI={serverAPI} />
+			<GeneralSettings serverAPI={serverAPI} isRunning={disableSettings()} />
 
 		</PanelSection>
 	);

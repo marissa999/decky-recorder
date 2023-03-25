@@ -14,10 +14,10 @@ import {
 } from "react";
 
 
-export const GeneralSettings: VFC<{ serverAPI: ServerAPI}> = ({serverAPI}) => {
-
-	const [isCapturing, setCapturing] = useState<boolean>(false);
-	const [isRolling, setRolling] = useState<boolean>(false);
+export const GeneralSettings: VFC<{ 
+	serverAPI: ServerAPI
+	isRunning: boolean
+}> = ({serverAPI, isRunning}) => {
 
 	const [localFilePath, setLocalFilePath] = useState<string>("/home/deck/Videos");
 
@@ -28,12 +28,6 @@ export const GeneralSettings: VFC<{ serverAPI: ServerAPI}> = ({serverAPI}) => {
 	const [localFileFormat, setLocalFileFormat] = useState<DropdownOption>(formatOptionMp4);
 
 	const initState = async () => {
-
-		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_capturing', {});
-		setCapturing(getIsCapturingResponse.result as boolean);
-
-		const getIsRollingResponse = await serverAPI.callPluginMethod('is_rolling', {});
-		setRolling(getIsRollingResponse.result as boolean);
 
 		const getLocalFilepathResponse = await serverAPI.callPluginMethod('get_local_filepath', {})
 		setLocalFilePath(getLocalFilepathResponse.result as string);
@@ -60,10 +54,10 @@ export const GeneralSettings: VFC<{ serverAPI: ServerAPI}> = ({serverAPI}) => {
 	}
 
 	const disableFileformatDropdown = () => {
-		if (isCapturing) {
+		if (isRunning) {
 			return true;
 		}
-		if (isRolling) {
+		if (isRunning) {
 			return true;
 		}
 		return false;
