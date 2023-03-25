@@ -18,7 +18,8 @@ export const ReplayMode: VFC<{
 	serverAPI: ServerAPI, 
 	isRolling: boolean
 	setRolling: React.Dispatch<React.SetStateAction<boolean>>, 
-	logic: DeckyRecorderLogic }> = ({serverAPI, isRolling, setRolling, logic}) => {
+	logic: DeckyRecorderLogic
+}> = ({serverAPI, isRolling, setRolling, logic}) => {
 
 	const [isRollingAutoStart, setRollingAutoStart] = useState<boolean>(false);	
  

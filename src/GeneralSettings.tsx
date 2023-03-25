@@ -13,7 +13,6 @@ import {
 	useEffect
 } from "react";
 
-
 export const GeneralSettings: VFC<{ 
 	serverAPI: ServerAPI
 	isRunning: boolean

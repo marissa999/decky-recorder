@@ -4,6 +4,7 @@ import {
 } from "decky-frontend-lib";
 
 export class DeckyRecorderLogic {
+	
 	serverAPI: ServerAPI;
 	pressedAt: number = Date.now();
 

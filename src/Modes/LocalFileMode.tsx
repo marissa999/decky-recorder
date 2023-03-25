@@ -9,7 +9,11 @@ import {
 	VFC
 } from "react";
 
-export const LocalFileMode: VFC<{ serverAPI: ServerAPI, isCapturing: boolean, setCapturing: React.Dispatch<React.SetStateAction<boolean>>}> = ({serverAPI, isCapturing, setCapturing}) => {
+export const LocalFileMode: VFC<{
+	serverAPI: ServerAPI,
+	isCapturing: boolean,
+	setCapturing: React.Dispatch<React.SetStateAction<boolean>>
+}> = ({serverAPI, isCapturing, setCapturing}) => {
 
 	const recordingButtonPress = async () => {
 		if (isCapturing === false) {

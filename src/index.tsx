@@ -22,7 +22,10 @@ import { DeckyRecorderLogic } from "./DeckyRecorderLogic";
 
 import { FaVideo } from "react-icons/fa";
 
-const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = ({ serverAPI, logic }) => {
+const DeckyRecorder: VFC<{
+	serverAPI: ServerAPI,
+	logic: DeckyRecorderLogic
+}> = ({ serverAPI, logic }) => {
 
 	const localRecordingMode = { data: "localFile", label: "Local Recording" } as SingleDropdownOption
 	const replayMode = { data: "replayMode", label: "Replay Mode" } as SingleDropdownOption
