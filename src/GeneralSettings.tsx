@@ -69,22 +69,20 @@ export const GeneralSettings: VFC<{
 	return (
 		<PanelSectionRow>
 
-			<div>Settings</div>
 			<ButtonItem
-				label="Path"
 				disabled={disableFileformatDropdown()}
 				bottomSeparator="none"
 				layout="below"
 				onClick={() => {
 					pickFolder();
 				}}>
-				{localFilePath}
+				{"Path: " + localFilePath as string}
 			</ButtonItem>
 
 			<Dropdown
 				menuLabel="Select the video file format"
 				disabled={disableFileformatDropdown()}
-				strDefaultLabel={localFileFormat.label as string}
+				strDefaultLabel={"Format: " + localFileFormat.label as string}
 				rgOptions={formatOptions}
 				selectedOption={localFileFormat}
 				onChange={(newLocalFileFormat) => {

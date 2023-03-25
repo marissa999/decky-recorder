@@ -89,7 +89,7 @@ export const ReplayMode: VFC<{
 			<Dropdown
 				menuLabel="Select the video file format"
 				disabled={isRolling}
-				strDefaultLabel={buffer.label as string}
+				strDefaultLabel={"Length: " + buffer.label as string}
 				rgOptions={bufferOptions}
 				selectedOption={buffer}
 				onChange={(newBufferLength) => {

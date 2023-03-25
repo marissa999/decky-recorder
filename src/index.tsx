@@ -72,11 +72,10 @@ const DeckyRecorder: VFC<{
 		<PanelSection>
 
 			<PanelSectionRow>
-				<div>Mode</div>
 				<Dropdown
 					menuLabel="Select the mode you want to use"
 					disabled={disableSettings()}
-					strDefaultLabel={mode.label as string}
+					strDefaultLabel={"Mode: " + mode.label as string}
 					rgOptions={modeOptions}
 					selectedOption={mode}
 					onChange={(newMode) => {
