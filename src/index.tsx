@@ -108,19 +108,19 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 
 	const [isCapturing, setCapturing] = useState<boolean>(false);
 
-	const [mode, setMode] = useState<string>("localFile");
+	// const [mode, setMode] = useState<string>("localFile");
 
 	const [isRolling, setRolling] = useState<boolean>(false);
 
 	const [buttonsEnabled, setButtonsEnabled] = useState<boolean>(true);
 
-	const audioBitrateOption128 = { data: "128", label: "128 Kbps" } as SingleDropdownOption
-	const audioBitrateOption192 = { data: "192", label: "192 Kbps" } as SingleDropdownOption
-	const audioBitrateOption256 = { data: "256", label: "256 Kbps" } as SingleDropdownOption
-	const audioBitrateOption320 = { data: "320", label: "320 Kbps" } as SingleDropdownOption
-	const audioBitrateOptions: DropdownOption[] = [audioBitrateOption128,
-		audioBitrateOption192, audioBitrateOption256, audioBitrateOption320];
-	const [audioBitrate, setAudioBitrate] = useState<DropdownOption>(audioBitrateOption128);
+	// const audioBitrateOption128 = { data: "128", label: "128 Kbps" } as SingleDropdownOption
+	// const audioBitrateOption192 = { data: "192", label: "192 Kbps" } as SingleDropdownOption
+	// const audioBitrateOption256 = { data: "256", label: "256 Kbps" } as SingleDropdownOption
+	// const audioBitrateOption320 = { data: "320", label: "320 Kbps" } as SingleDropdownOption
+	// const audioBitrateOptions: DropdownOption[] = [audioBitrateOption128,
+	// 	audioBitrateOption192, audioBitrateOption256, audioBitrateOption320];
+	// const [audioBitrate, setAudioBitrate] = useState<DropdownOption>(audioBitrateOption128);
 
 	const [localFilePath, setLocalFilePath] = useState<string>("/home/deck/Videos");
 
@@ -137,28 +137,28 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 		const getIsRollingResponse = await serverAPI.callPluginMethod('is_rolling', {});
 		setRolling(getIsRollingResponse.result as boolean);
 
-		const getModeResponse = await serverAPI.callPluginMethod('get_current_mode', {});
-		setMode(getModeResponse.result as string);
+		// const getModeResponse = await serverAPI.callPluginMethod('get_current_mode', {});
+		// setMode(getModeResponse.result as string);
 
-		const getAudioBitrateResponse = await serverAPI.callPluginMethod('get_audio_bitrate', {});
-		const audioBitrateResponseNumber: number = getAudioBitrateResponse.result as number;
-		switch (audioBitrateResponseNumber) {
-			case 128:
-				setAudioBitrate(audioBitrateOption128);
-				break;
-			case 192:
-				setAudioBitrate(audioBitrateOption192)
-				break;
-			case 256:
-				setAudioBitrate(audioBitrateOption256)
-				break;
-			case 320:
-				setAudioBitrate(audioBitrateOption320)
-				break;
-			default:
-				setAudioBitrate(audioBitrateOption128)
-				break;
-		}
+		// const getAudioBitrateResponse = await serverAPI.callPluginMethod('get_audio_bitrate', {});
+		// const audioBitrateResponseNumber: number = getAudioBitrateResponse.result as number;
+		// switch (audioBitrateResponseNumber) {
+		// 	case 128:
+		// 		setAudioBitrate(audioBitrateOption128);
+		// 		break;
+		// 	case 192:
+		// 		setAudioBitrate(audioBitrateOption192)
+		// 		break;
+		// 	case 256:
+		// 		setAudioBitrate(audioBitrateOption256)
+		// 		break;
+		// 	case 320:
+		// 		setAudioBitrate(audioBitrateOption320)
+		// 		break;
+		// 	default:
+		// 		setAudioBitrate(audioBitrateOption128)
+		// 		break;
+		// }
 
 		const getLocalFilepathResponse = await serverAPI.callPluginMethod('get_local_filepath', {})
 		setLocalFilePath(getLocalFilepathResponse.result as string);
