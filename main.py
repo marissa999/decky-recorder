@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from settings import SettingsManager
+import decky_plugin
 
 # Get environment variable
 settingsDir = os.environ["DECKY_PLUGIN_SETTINGS_DIR"]
@@ -14,25 +15,16 @@ settingsDir = os.environ["DECKY_PLUGIN_SETTINGS_DIR"]
 
 import asyncio
 
-DEPSPATH = "/home/deck/homebrew/plugins/decky-recorder/bin"
-GSTPLUGINSPATH = DEPSPATH + "/gstreamer-1.0"
-TMPLOCATION = "/tmp"
+DEPSPATH = Path(decky_plugin.DECKY_PLUGIN_DIR) / "backend/out"
+GSTPLUGINSPATH = DEPSPATH / "gstreamer-1.0"
 
-import logging
+std_out_file = open(Path(decky_plugin.DECKY_PLUGIN_LOG_DIR) / "decky-recorder-std-out.log", "w")
+std_err_file = open(Path(decky_plugin.DECKY_PLUGIN_LOG_DIR) / "decky-recorder-std-err.log", "w")
 
-logging.basicConfig(
-    filename="/tmp/decky-recorder.log",
-    format="Decky Recorder: %(asctime)s %(levelname)s %(message)s",
-    filemode="w+",
-    force=True,
-)
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-std_out_file = open("/tmp/decky-recorder-std-out.log", "w")
-std_err_file = open("/tmp/decky-recorder-std-err.log", "w")
+logger = decky_plugin.logger
 
 try:
-    sys.path.append("/home/deck/homebrew/plugins/decky-recorder/bin/psutil")
+    sys.path.append(str(DEPSPATH / "psutil"))
     import psutil
 
     logger.info("Successfully loaded psutil")
@@ -109,7 +101,7 @@ class Plugin:
             # Start command including plugin path and ld_lib path
             start_command = (
                 "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(
-                    GSTPLUGINSPATH, DEPSPATH
+                    str(GSTPLUGINSPATH), str(DEPSPATH)
                 )
             )
 
