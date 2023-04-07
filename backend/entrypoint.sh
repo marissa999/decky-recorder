@@ -3,7 +3,7 @@ set -e
 
 OUTDIR="/backend/out"
 
-cd /backend
+cd ~/backend
 
 cp -r /pacman/usr/lib/* /backend/out
 
