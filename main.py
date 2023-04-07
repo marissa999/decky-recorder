@@ -7,12 +7,11 @@ import time
 from datetime import datetime
 from pathlib import Path
 from settings import SettingsManager
+import asyncio
 import decky_plugin
 
 # Get environment variable
 settingsDir = os.environ["DECKY_PLUGIN_SETTINGS_DIR"]
-
-import asyncio
 
 DEPSPATH = Path(decky_plugin.DECKY_PLUGIN_DIR) / "backend/out"
 GSTPLUGINSPATH = DEPSPATH / "gstreamer-1.0"
@@ -25,7 +24,6 @@ logger = decky_plugin.logger
 try:
     sys.path.append(str(DEPSPATH / "psutil"))
     import psutil
-
     logger.info("Successfully loaded psutil")
 except Exception:
     logger.info(traceback.format_exc())
@@ -85,7 +83,87 @@ class Plugin:
                 logger.exception("watchdog")
             await asyncio.sleep(5)
 
-    # Starts the capturing process
+    ###################
+    # Local file mode #
+    ###################
+    _local_file_recording_process = None
+
+    # start local file recording
+    async def start_local_file_recording(self):
+        try:
+            logger.info("Starting local file recording recording")
+
+            if await Plugin.is_local_file_recording(self) is True:
+                logger.info("Error: Already recording")
+                return
+
+            os.environ["XDG_RUNTIME_DIR"] = "/run/user/1000"
+            os.environ["XDG_SESSION_TYPE"] = "wayland"
+            os.environ["HOME"] = "/home/deck"
+
+            # Start command including plugin path and ld_lib path
+            start_command = f"GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={GSTPLUGINSPATH} LD_LIBRARY_PATH={DEPSPATH} gst-launch-1.0 -e -vvv"
+
+            # Video pipeline
+            logger.info("Making video pipeline")
+            muxer = Plugin._muxer_map.get(self._fileformat, "mp4mux")
+            videoPipeline = f"pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! {muxer} name=sink"
+
+            # Filesink Pipeline
+            logger.info("Making filesink pipeline")
+            dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            fullFilePath = f"{self._localFilePath}/Decky-Recorder_{dateTime}.{self._fileformat}"
+            fileSinkPipeline = f"filesink location={fullFilePath}"
+
+            logger.info("Making audio pipeline")
+            # Creates audio pipeline
+            audio_device_output = subprocess.getoutput("pactl get-default-sink")
+            logger.info(f"Audio device output {audio_device_output}")
+            for line in audio_device_output.split("\n"):
+                if "alsa_output" in line:
+                    monitor = line + ".monitor"
+                    break
+            audioPipeline = f"pulsesrc device=\"Recording_{monitor}\" ! audioconvert ! lamemp3enc target=bitrate bitrate={self._audioBitrate} cbr=true ! sink.audio_0"
+
+            # Starts the capture process
+            cmd = f"{start_command} {videoPipeline} ! {fileSinkPipeline} {audioPipeline}"
+            logger.info("Command: " + cmd)
+            self._local_file_recording_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
+            logger.info("Recording started!")
+        except Exception:
+            await Plugin.stop_local_file_recording(self)
+            logger.info(traceback.format_exc())
+        return
+
+    # Stops the capturing process and cleans up if the mode requires
+    async def stop_local_file_recording(self):
+        logger.info("Stopping local file recording")
+
+        if await Plugin.is_local_file_recording(self) is False:
+            logger.info("Error: No local file recording process to stop")
+            return
+
+        logger.info("Sending sigint to local file recording")
+        proc = self._local_file_recording_process
+        self._local_file_recording_process = None
+        proc.send_signal(signal.SIGINT)
+        logger.info("Sigint sent. Waiting...")
+        try:
+            proc.wait(timeout=10)
+        except Exception:
+            logger.warn("Could not interrupt gstreamer, killing instead")
+            proc.kill()
+
+        logger.info("Local file recording stopped!")
+        return
+
+    async def is_local_file_recording(self):
+	    return self._local_file_recording_process is not None
+
+    ###############
+    # Replay mode #
+    ###############
+
     async def start_capturing(self):
         try:
             logger.info("Starting recording")

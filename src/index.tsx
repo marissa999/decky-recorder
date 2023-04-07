@@ -38,15 +38,15 @@ const DeckyRecorder: VFC<{
 	const initState = async () => {
 
 		const getModeResponse = await serverAPI.callPluginMethod('get_current_mode', {});
-		if (getModeResponse.result as string == "localFile") {
+		if (getModeResponse.result as string === localRecordingMode.data as string) {
 			setMode(localRecordingMode);
-		} else if (getModeResponse.result as string == "replayMode") {
+		} else if (getModeResponse.result as string === replayMode.data as string) {
 			setMode(replayMode);
 		} else {
 			setMode(localRecordingMode);
 		}
 
-		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_capturing', {});
+		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_local_file_recording', {});
 		setCapturing(getIsCapturingResponse.result as boolean);
 
 		const getIsRollingResponse = await serverAPI.callPluginMethod('is_rolling', {});

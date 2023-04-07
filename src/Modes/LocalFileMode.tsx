@@ -18,11 +18,11 @@ export const LocalFileMode: VFC<{
 	const recordingButtonPress = async () => {
 		if (isCapturing === false) {
 			setCapturing(true);
-			await serverAPI.callPluginMethod('start_capturing', {});
+			await serverAPI.callPluginMethod('start_local_file_recording', {});
 			Router.CloseSideMenus();
 		} else {
 			setCapturing(false);
-			await serverAPI.callPluginMethod('stop_capturing', {});
+			await serverAPI.callPluginMethod('stop_local_file_recording', {});
 		}
 	}
 
