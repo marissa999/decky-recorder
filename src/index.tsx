@@ -33,7 +33,7 @@ const DeckyRecorder: VFC<{
 	const [mode, setMode] = useState<DropdownOption>(localRecordingMode);
 
 	const [isCapturing, setCapturing] = useState<boolean>(false);
-	const [isRolling, setRolling] = useState<boolean>(false);	
+	const [isRolling, setRolling] = useState<boolean>(false);
 
 	const initState = async () => {
 
