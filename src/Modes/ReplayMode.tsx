@@ -3,7 +3,6 @@ import {
 	ServerAPI,
 	ButtonItem,
 	ToggleField,
-	Router,
 	SingleDropdownOption,
 	DropdownOption,
 	Dropdown
@@ -62,12 +61,17 @@ export const ReplayMode: VFC<{
 	}, []);
 
 	const replayModeButtonPressed = async () => {
-		if (isRolling === false) {
+		if (!isRolling) {
+			serverAPI.callPluginMethod('enable_rolling', {});
 			setRolling(true);
-			Router.CloseSideMenus();
 		} else {
+			serverAPI.callPluginMethod('disable_rolling', {});
 			setRolling(false);
 		}
+	}
+
+	const saveReplay = async () => {
+		logic.saveRollingRecording(buffer.data as number)
 	}
 
 	const replayModeButtonText = (): string => {
@@ -86,8 +90,15 @@ export const ReplayMode: VFC<{
 				onClick={() => {replayModeButtonPressed()}}>
 				{replayModeButtonText()}
 			</ButtonItem>
+			<ButtonItem
+				bottomSeparator="none"
+				disabled={!isRolling}
+				layout="below"
+				onClick={() => {saveReplay()}}>
+				Save replay
+			</ButtonItem>
 			<Dropdown
-				menuLabel="Select the video file format"
+				menuLabel="Select the buffer length"
 				disabled={isRolling}
 				strDefaultLabel={"Length: " + buffer.label as string}
 				rgOptions={bufferOptions}

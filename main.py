@@ -12,7 +12,6 @@ import decky_plugin
 # Get environment variable
 settingsDir = os.environ["DECKY_PLUGIN_SETTINGS_DIR"]
 
-
 import asyncio
 
 DEPSPATH = Path(decky_plugin.DECKY_PLUGIN_DIR) / "backend/out"
@@ -117,8 +116,8 @@ class Plugin:
 
             cmd = "{} {}".format(start_command, videoPipeline)
 
-            # If mode is localFile
-            if self._mode == "localFile":
+            # If mode is localFile or replayMode
+            if self._mode == "localFile" or self._mode == "replayMode":
                 logger.info("Local File Recording")
                 dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 if self._rolling:
