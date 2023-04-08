@@ -105,13 +105,14 @@ export const ReplayMode: VFC<{
 				selectedOption={buffer}
 				onChange={(newBufferLength) => {
 					serverAPI.callPluginMethod('set_buffer_length', { bufferLength: newBufferLength.data });
-					setBuffer(newBufferLength);
-				}}
+					setBuffer(newBufferLength);}}
 			/>
 			<ToggleField
 					label="Auto Enable at Start"
 					checked={isRollingAutoStart}
-					onChange={(e) => { setRollingAutoStart(e)}} />
+					onChange={(e) => { 
+						serverAPI.callPluginMethod('set_rolling_autostart', { rolling_autostart: e });
+						setRollingAutoStart(e);}} />
 			<div>Steam + Start saves a 30 second clip in replay mode. If replay mode is off, this shortcut will enable it.</div>
 		</PanelSectionRow>
 	);
