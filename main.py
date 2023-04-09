@@ -49,7 +49,7 @@ class Plugin:
     _filepath: str = None
     _mode: str = "localFile"
     _audioBitrate: int = 128
-    _localFilePath: str = "/home/deck/Videos"
+    _localFilePath: str = decky_plugin.HOME + "/Videos"
     _rollingRecordingFolder: str = "/dev/shm"
     _rollingRecordingPrefix: str = "Decky-Recorder-Rolling"
     _fileformat: str = "mp4"
@@ -69,23 +69,27 @@ class Plugin:
 
     @asyncio.coroutine
     async def watchdog(self):
-        print("in watchdog")
+        logger.info("Watchdog started")
         while True:
-            print("watchdog ping")
             try:
                 in_gm = in_gamemode()
                 is_cap = await Plugin.is_capturing(self, verbose=False)
-                print(in_gm, is_cap)
                 if not in_gm and is_cap:
+                    logger.warn("Left gamemode but recording was still running, killing capture")
                     await Plugin.stop_capturing(self)
             except Exception:
                 logger.exception("watchdog")
             await asyncio.sleep(5)
 
     # Starts the capturing process
-    async def start_capturing(self):
+    async def start_capturing(self, app_name: str = ""):
         try:
             logger.info("Starting recording")
+
+            app_name = str(app_name)
+            if app_name == "" or app_name == "null":
+                app_name = "Decky-Recorder"
+
             muxer = Plugin._muxer_map.get(self._fileformat, "mp4mux")
             logger.info(f"Starting recording for {self._fileformat} with mux {muxer}")
             if await Plugin.is_capturing(self) == True:
@@ -124,11 +128,11 @@ class Plugin:
                     )
                 if not self._rolling:
                     logger.info("Setting local filepath no rolling")
-                    self._filepath = f"{self._localFilePath}/Decky-Recorder_{dateTime}.{self._fileformat}"
+                    self._filepath = f"{self._localFilePath}/{app_name}_{dateTime}.{self._fileformat}"
                     fileSinkPipeline = f" filesink location={self._filepath} "
                 else:
                     logger.info("Setting local filepath")
-                    fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=2000000000 max-files=240"
+                    fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=1000000000 max-files=480"
                 cmd = cmd + fileSinkPipeline
             else:
                 logger.info(f"Mode {self._mode} does not exist")
@@ -292,10 +296,13 @@ class Plugin:
             await Plugin.saveConfig(self)
         return
 
-    async def save_rolling_recording(self, clip_duration: float = 30.0):
+    async def save_rolling_recording(self, clip_duration: float = 30.0, app_name: str = ""):
+        app_name = str(app_name)
+        if app_name == "" or app_name == "null":
+            app_name = "Decky-Recorder"
         clip_duration = int(clip_duration)
         logger.info("Called save rolling function")
-        if time.time() - self._last_clip_time < 5:
+        if time.time() - self._last_clip_time < 2:
             logger.info("Too early to record another clip")
             return 0
         try:
@@ -316,7 +323,7 @@ class Plugin:
 
             dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             ffmpeg = subprocess.Popen(
-                f"ffmpeg -sseof -{clip_duration} -hwaccel vaapi -hwaccel_output_format vaapi -vaapi_device /dev/dri/renderD128 -f concat -safe 0 -i {self._rollingRecordingFolder}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.{self._fileformat}",
+                f"ffmpeg -hwaccel vaapi -hwaccel_output_format vaapi -vaapi_device /dev/dri/renderD128 -f concat -safe 0 -i {self._rollingRecordingFolder}/files -c copy {self._localFilePath}/{app_name}-{clip_duration}s-{dateTime}.{self._fileformat}",
                 shell=True,
                 stdout=std_out_file,
                 stderr=std_err_file,
