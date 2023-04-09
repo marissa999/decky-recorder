@@ -57,9 +57,10 @@ class Plugin:
 
     async def clear_rogue_gst_processes(self):
         gst_pids = find_gst_processes()
-        curr_pid = self._recording_process.pid if self._recording_process is not None else None
+        record_pid = self._recording_process.pid if self._recording_process is not None else None
+        rolling_pid = self._rolling_process.pid if self._rolling_process is not None else None
         for pid in gst_pids:
-            if pid != curr_pid:
+            if pid != record_pid and pid != rolling_pid:
                 logger.info(f"Killing rogue process {pid}")
                 os.kill(pid, signal.SIGKILL)
 
@@ -167,9 +168,8 @@ class Plugin:
     async def enable_rolling(self):
         logger.info("Enable rolling was called begin")
         # if capturing, stop that capture, then re-enable with rolling
-        if await Plugin.is_capturing(self):
-            await Plugin.stop_capturing(self)
-
+        if await Plugin.is_rolling(self):
+            await Plugin.disable_rolling(self)
         try:
             logger.info("Starting replay")
             muxer = Plugin._muxer_map.get(self._fileformat, "mp4mux")
@@ -213,12 +213,6 @@ class Plugin:
         except Exception:
             await Plugin.stop_capturing(self)
             logger.info(traceback.format_exc())
-
-
-        await Plugin.start_capturing(self)
-
-
-        await Plugin.saveConfig(self)
         logger.info("Enable rolling was called end")
 
     # Stops the capturing process and cleans
@@ -365,7 +359,7 @@ class Plugin:
         self._localFilePath = self._settings.getSetting("output_folder", "/home/deck/Videos")
         self._fileformat = self._settings.getSetting("format", "mp4")
         self._mode = self._settings.getSetting("mode", "localFile")
-        self._rolling_autostart = self._settings.getSetting("rolling", False)
+        self._rolling_autostart = self._settings.getSetting("rolling_autostart", False)
         self._audioBitrate = self._settings.getSetting("audioBitrate", 128)
         self._bufferLength = self._settings.getSetting("bufferLength", 30)
 
@@ -380,7 +374,7 @@ class Plugin:
         self._settings.setSetting("mode", self._mode)
         self._settings.setSetting("audioBitrate", self._audioBitrate)
         self._settings.setSetting("bufferLength", self._bufferLength)
-        self._settings.setSetting("rolling", self._rolling_autostart)
+        self._settings.setSetting("rolling_autostart", self._rolling_autostart)
         return
 
     #########
@@ -392,6 +386,7 @@ class Plugin:
         self._watchdog_task = loop.create_task(Plugin.watchdog(self))
         await Plugin.loadConfig(self)
         if self._rolling_autostart is True:
+            await Plugin.set_current_mode(self, "replayMode")
             await Plugin.enable_rolling(self)
         return
 
