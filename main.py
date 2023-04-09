@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from settings import SettingsManager
 import decky_plugin
+import logging
 
 # Get environment variable
 settingsDir = os.environ["DECKY_PLUGIN_SETTINGS_DIR"]
@@ -22,6 +23,13 @@ std_out_file = open(Path(decky_plugin.DECKY_PLUGIN_LOG_DIR) / "decky-recorder-st
 std_err_file = open(Path(decky_plugin.DECKY_PLUGIN_LOG_DIR) / "decky-recorder-std-err.log", "w")
 
 logger = decky_plugin.logger
+
+from logging.handlers import TimedRotatingFileHandler
+log_file = Path(decky_plugin.DECKY_PLUGIN_LOG_DIR) / "decky-recorder.log"
+log_file_handler = TimedRotatingFileHandler(log_file, when="midnight", backupCount=2)
+log_file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+logger.handlers.clear()
+logger.addHandler(log_file_handler)
 
 try:
     sys.path.append(str(DEPSPATH / "psutil"))
@@ -129,7 +137,7 @@ class Plugin:
                 if not self._rolling:
                     logger.info("Setting local filepath no rolling")
                     self._filepath = f"{self._localFilePath}/{app_name}_{dateTime}.{self._fileformat}"
-                    fileSinkPipeline = f" filesink location={self._filepath} "
+                    fileSinkPipeline = f' filesink location="{self._filepath}" '
                 else:
                     logger.info("Setting local filepath")
                     fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=1000000000 max-files=480"
@@ -323,7 +331,7 @@ class Plugin:
 
             dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             ffmpeg = subprocess.Popen(
-                f"ffmpeg -hwaccel vaapi -hwaccel_output_format vaapi -vaapi_device /dev/dri/renderD128 -f concat -safe 0 -i {self._rollingRecordingFolder}/files -c copy {self._localFilePath}/{app_name}-{clip_duration}s-{dateTime}.{self._fileformat}",
+                f'ffmpeg -hwaccel vaapi -hwaccel_output_format vaapi -vaapi_device /dev/dri/renderD128 -f concat -safe 0 -i {self._rollingRecordingFolder}/files -c copy "{self._localFilePath}/{app_name}-{clip_duration}s-{dateTime}.{self._fileformat}"',
                 shell=True,
                 stdout=std_out_file,
                 stderr=std_err_file,
