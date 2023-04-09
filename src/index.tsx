@@ -42,7 +42,7 @@ class DeckyRecorderLogic
 	}
 
 	saveRollingRecording = async  (duration: number) => {
-		const res = await this.serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration });
+		const res = await this.serverAPI.callPluginMethod('save_rolling_recording', { clip_duration: duration, app_name: Router.MainRunningApp?.display_name});
 		let r = (res.result as number)
 		if (r > 0) {
 			await this.notify("Saved clip");
@@ -181,7 +181,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 	const recordingButtonPress = async () => {
 		if (isCapturing === false) {
 			setCapturing(true);
-			await serverAPI.callPluginMethod('start_capturing', {});
+			await serverAPI.callPluginMethod('start_capturing', {app_name: Router.MainRunningApp?.display_name});
 			Router.CloseSideMenus();
 		} else {
 			setCapturing(false);
@@ -319,6 +319,7 @@ const DeckyRecorder: VFC<{ serverAPI: ServerAPI, logic: DeckyRecorderLogic }> = 
 export default definePlugin((serverApi: ServerAPI) => {
 	let logic = new DeckyRecorderLogic(serverApi);
 	let input_register = window.SteamClient.Input.RegisterForControllerStateChanges(logic.handleButtonInput);
+	//Router.MainRunningApp?.display_name
 	return {
 		title: <div className={staticClasses.Title}>Decky Recorder</div>,
 		content: <DeckyRecorder serverAPI={serverApi} logic={logic} />,
