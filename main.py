@@ -208,10 +208,10 @@ class Plugin:
             # Starts the capture process
             cmd = f"{start_command} {videoPipeline} ! {splitmuxPipeline} {audioPipeline}"
             logger.info("Command: " + cmd)
-            self._local_file_recording_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
+            self._rolling_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
             logger.info("Rolling started started!")
         except Exception:
-            await Plugin.stop_capturing(self)
+            await Plugin.disable_rolling(self)
             logger.info(traceback.format_exc())
         logger.info("Enable rolling was called end")
 
