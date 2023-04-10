@@ -49,7 +49,7 @@ class Plugin:
     _fileformat: str = "mp4"
     _bufferLength: int = 30
     _audioBitrate: int = 128
-    _rolling_autostart: bool = False
+    _replaymode_autostart: bool = False
 
     _watchdog_task = None
     _muxer_map = {"mp4": "mp4mux", "mkv": "matroskamux", "mov": "qtmux"}
@@ -57,7 +57,7 @@ class Plugin:
 
     async def clear_rogue_gst_processes(self):
         gst_pids = find_gst_processes()
-        record_pid = self._recording_process.pid if self._recording_process is not None else None
+        record_pid = self._local_file_recording_process.pid if self._local_file_recording_process is not None else None
         rolling_pid = self._rolling_process.pid if self._rolling_process is not None else None
         for pid in gst_pids:
             if pid != record_pid and pid != rolling_pid:
@@ -71,7 +71,7 @@ class Plugin:
             print("watchdog ping")
             try:
                 in_gm = in_gamemode()
-                is_cap = await Plugin.is_capturing(self, verbose=False)
+                is_cap = await Plugin.is_capturing(self)
                 print(in_gm, is_cap)
                 if not in_gm and is_cap:
                     await Plugin.stop_capturing(self)
@@ -208,7 +208,7 @@ class Plugin:
             # Starts the capture process
             cmd = f"{start_command} {videoPipeline} ! {splitmuxPipeline} {audioPipeline}"
             logger.info("Command: " + cmd)
-            self._recording_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
+            self._local_file_recording_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
             logger.info("Rolling started started!")
         except Exception:
             await Plugin.stop_capturing(self)
@@ -282,6 +282,23 @@ class Plugin:
 	    return self._rolling_process is not None
 
     ###########
+    # General #
+    ###########
+
+    async def is_capturing(self):
+        if Plugin.is_local_file_recording(self) is True:
+            return True
+        if Plugin.is_local_file_recording(self) is True:
+            return True
+        return False
+
+    async def stop_capturing(self):
+        if Plugin.is_local_file_recording(self) is True:
+            await Plugin.stop_local_file_recording(self)
+        if Plugin.is_local_file_recording(self) is True:
+            return Plugin.disable_rolling(self)
+
+    ###########
     # Options #
     ###########
 
@@ -340,15 +357,15 @@ class Plugin:
         return self._bufferLength
 
     # Sets rolling autostart
-    async def set_rolling_autostart(self, rolling_autostart: bool):
-        logger.info("New rolling autostart: " + rolling_autostart)
-        self._rolling_autostart = rolling_autostart
+    async def set_replaymode_autostart(self, replaymode_autostart: bool):
+        logger.info("New rolling autostart: " + replaymode_autostart)
+        self._replaymode_autostart = replaymode_autostart
         await Plugin.saveConfig(self)
 
     # Gets rolling autostart
-    async def get_buffer_length(self):
-        logger.info("Current rolling autostart: " + self._rolling_autostart)
-        return self._rolling_autostart
+    async def get_replaymode_autostart(self):
+        logger.info("Current rolling autostart: " + self._replaymode_autostart)
+        return self._replaymode_autostart
 
     async def loadConfig(self):
         logger.info('Loading settings from: {}'.format(os.path.join(settingsDir, 'settings.json')))
@@ -359,7 +376,7 @@ class Plugin:
         self._localFilePath = self._settings.getSetting("output_folder", "/home/deck/Videos")
         self._fileformat = self._settings.getSetting("format", "mp4")
         self._mode = self._settings.getSetting("mode", "localFile")
-        self._rolling_autostart = self._settings.getSetting("rolling_autostart", False)
+        self._replaymode_autostart = self._settings.getSetting("replay_autostart", False)
         self._audioBitrate = self._settings.getSetting("audioBitrate", 128)
         self._bufferLength = self._settings.getSetting("bufferLength", 30)
 
@@ -374,7 +391,7 @@ class Plugin:
         self._settings.setSetting("mode", self._mode)
         self._settings.setSetting("audioBitrate", self._audioBitrate)
         self._settings.setSetting("bufferLength", self._bufferLength)
-        self._settings.setSetting("rolling_autostart", self._rolling_autostart)
+        self._settings.setSetting("replay_autostart", self._replaymode_autostart)
         return
 
     #########
@@ -385,7 +402,7 @@ class Plugin:
         loop = asyncio.get_event_loop()
         self._watchdog_task = loop.create_task(Plugin.watchdog(self))
         await Plugin.loadConfig(self)
-        if self._rolling_autostart is True:
+        if self._replaymode_autostart is True:
             await Plugin.set_current_mode(self, "replayMode")
             await Plugin.enable_rolling(self)
         return

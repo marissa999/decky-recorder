@@ -89,7 +89,7 @@ const DeckyRecorder: VFC<{
 				? <LocalFileMode serverAPI={serverAPI} isCapturing={isCapturing} setCapturing={setCapturing} /> : null}
 
 			{(mode.data == replayMode.data)
-				? <ReplayMode serverAPI={serverAPI} isRolling={isRolling} setRolling={setRolling} logic={logic} /> : null}
+				? <ReplayMode serverAPI={serverAPI} isReplayMode={isRolling} setReplayMode={setRolling} logic={logic} /> : null}
 
 			<GeneralSettings serverAPI={serverAPI} isRunning={disableSettings()} />
 

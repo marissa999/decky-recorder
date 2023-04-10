@@ -18,12 +18,12 @@ import { DeckyRecorderLogic } from "../DeckyRecorderLogic";
 
 export const ReplayMode: VFC<{ 
 	serverAPI: ServerAPI, 
-	isRolling: boolean
-	setRolling: React.Dispatch<React.SetStateAction<boolean>>, 
+	isReplayMode: boolean
+	setReplayMode: React.Dispatch<React.SetStateAction<boolean>>, 
 	logic: DeckyRecorderLogic
-}> = ({serverAPI, isRolling, setRolling, logic}) => {
+}> = ({serverAPI, isReplayMode, setReplayMode, logic}) => {
 
-	const [isRollingAutoStart, setRollingAutoStart] = useState<boolean>(false);	
+	const [isReplayModeAutoStart, setReplayModeAutoStart] = useState<boolean>(false);	
  
 	const bufferOption30 = { data: 30 as number, label: "30 Seconds" } as SingleDropdownOption
 	const bufferOption60 = { data: 60 as number, label: "1 Minute" } as SingleDropdownOption;
@@ -54,6 +54,9 @@ export const ReplayMode: VFC<{
 			setBuffer(bufferOption30)
 		}
 
+		const getReplayModeAutostartResponse = await serverAPI.callPluginMethod('get_replaymode_autostart', {})
+		setReplayModeAutoStart(getReplayModeAutostartResponse.result as boolean)
+
 	}
 
 	useEffect(() => {
@@ -61,12 +64,12 @@ export const ReplayMode: VFC<{
 	}, []);
 
 	const replayModeButtonPressed = async () => {
-		if (!isRolling) {
-			serverAPI.callPluginMethod('enable_rolling', {});
-			setRolling(true);
+		if (!isReplayMode) {
+			serverAPI.callPluginMethod('enable_replaymode', {});
+			setReplayMode(true);
 		} else {
-			serverAPI.callPluginMethod('disable_rolling', {});
-			setRolling(false);
+			serverAPI.callPluginMethod('disable_replaymode', {});
+			setReplayMode(false);
 		}
 	}
 
@@ -75,7 +78,7 @@ export const ReplayMode: VFC<{
 	}
 
 	const replayModeButtonText = (): string => {
-		if (isRolling === false) {
+		if (isReplayMode === false) {
 			return "Start Replay Recording";
 		} else {
 			return "Stop Replay Recording";
@@ -92,14 +95,14 @@ export const ReplayMode: VFC<{
 			</ButtonItem>
 			<ButtonItem
 				bottomSeparator="none"
-				disabled={!isRolling}
+				disabled={!isReplayMode}
 				layout="below"
 				onClick={() => {saveReplay()}}>
 				Save replay
 			</ButtonItem>
 			<Dropdown
 				menuLabel="Select the buffer length"
-				disabled={isRolling}
+				disabled={isReplayMode}
 				strDefaultLabel={"Length: " + buffer.label as string}
 				rgOptions={bufferOptions}
 				selectedOption={buffer}
@@ -109,10 +112,10 @@ export const ReplayMode: VFC<{
 			/>
 			<ToggleField
 					label="Auto Enable at Start"
-					checked={isRollingAutoStart}
+					checked={isReplayModeAutoStart}
 					onChange={(e) => { 
-						serverAPI.callPluginMethod('set_rolling_autostart', { rolling_autostart: e });
-						setRollingAutoStart(e);}} />
+						serverAPI.callPluginMethod('set_replaymode_autostart', { replaymode_autostart: e });
+						setReplayModeAutoStart(e);}} />
 			<div>Steam + Start saves a 30 second clip in replay mode. If replay mode is off, this shortcut will enable it.</div>
 		</PanelSectionRow>
 	);
