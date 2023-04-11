@@ -159,6 +159,7 @@ class Plugin:
     ###############
     # Replay mode #
     ###############
+    
     _rolling_process = None
     _filepath: str = None
     _rollingRecordingFolder: str = "/dev/shm"
@@ -174,7 +175,7 @@ class Plugin:
             logger.info("Starting replay")
             muxer = Plugin._muxer_map.get(self._fileformat, "mp4mux")
             logger.info(f"Starting recording for {self._fileformat} with mux {muxer}")
-            if await Plugin.is_capturing(self) == True:
+            if await Plugin.is_rolling(self) == True:
                 logger.info("Error: Already recording")
                 return
 
@@ -209,6 +210,9 @@ class Plugin:
             cmd = f"{start_command} {videoPipeline} ! {splitmuxPipeline} {audioPipeline}"
             logger.info("Command: " + cmd)
             self._rolling_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
+
+            self._mode = "replayMode"
+
             logger.info("Rolling started started!")
         except Exception:
             await Plugin.disable_rolling(self)
