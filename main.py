@@ -156,7 +156,7 @@ class Plugin:
                     break
             cmd = (
                 cmd
-                + f' pulsesrc device="Recording_{monitor}" ! audioconvert ! lamemp3enc target=bitrate bitrate={self._audioBitrate} cbr=true ! sink.audio_0'
+                + f' pulsesrc device="Recording_{monitor}" ! audio/x-raw, channels=2 ! audioconvert ! lamemp3enc target=bitrate bitrate={self._audioBitrate} cbr=true ! sink.audio_0'
             )
 
             # Starts the capture process
