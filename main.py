@@ -56,7 +56,7 @@ class Plugin:
     _recording_process = None
     _filepath: str = None
     _mode: str = "localFile"
-    _audioBitrate: int = 128
+    _audioBitrate: int = 192000
     _localFilePath: str = decky_plugin.HOME + "/Videos"
     _rollingRecordingFolder: str = "/dev/shm"
     _rollingRecordingPrefix: str = "Decky-Recorder-Rolling"
@@ -156,7 +156,7 @@ class Plugin:
                     break
             cmd = (
                 cmd
-                + f' pulsesrc device="Recording_{monitor}" ! audio/x-raw, channels=2 ! audioconvert ! lamemp3enc target=bitrate bitrate={self._audioBitrate} cbr=true ! sink.audio_0'
+                + f' pulsesrc device="Recording_{monitor}" ! audio/x-raw, channels=2 ! audioconvert ! faac bitrate={self._audioBitrate} rate-control=2 ! sink.audio_0'
             )
 
             # Starts the capture process
@@ -271,7 +271,7 @@ class Plugin:
         self._settings = SettingsManager(name="decky-loader-settings", settings_directory=settingsDir)
         self._settings.read()
         self._mode = "localFile"
-        self._audioBitrate = 128
+        self._audioBitrate = 192000
 
         self._localFilePath = self._settings.getSetting("output_folder", "/home/deck/Videos")
         self._fileformat = self._settings.getSetting("format", "mp4")
