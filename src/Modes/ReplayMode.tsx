@@ -65,10 +65,10 @@ export const ReplayMode: VFC<{
 
 	const replayModeButtonPressed = async () => {
 		if (!isReplayMode) {
-			serverAPI.callPluginMethod('enable_replaymode', {});
+			serverAPI.callPluginMethod('start_capturing', {});
 			setReplayMode(true);
 		} else {
-			serverAPI.callPluginMethod('disable_replaymode', {});
+			serverAPI.callPluginMethod('stop_capturing', {});
 			setReplayMode(false);
 		}
 	}
