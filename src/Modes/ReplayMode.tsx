@@ -102,7 +102,6 @@ export const ReplayMode: VFC<{
 			</ButtonItem>
 			<Dropdown
 				menuLabel="Select the buffer length"
-				disabled={isReplayMode}
 				strDefaultLabel={"Length: " + buffer.label as string}
 				rgOptions={bufferOptions}
 				selectedOption={buffer}

@@ -118,33 +118,27 @@ class Plugin:
             )
 
             # Video Pipeline
-            if not self._rolling:
-                videoPipeline = f"pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! {muxer} name=sink !"
-            else:
-                videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
-
-            cmd = "{} {}".format(start_command, videoPipeline)
-
+            logger.info(f"Recording with mode: {self._mode}")
+            dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             # If mode is localFile
             if self._mode == "localFile":
-                logger.info("Local File Recording")
-                dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                if self._rolling:
-                    logger.info("Setting tmp filepath")
-                    self._filepath = (
-                        f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
-                    )
-                if not self._rolling:
-                    logger.info("Setting local filepath no rolling")
-                    self._filepath = f"{self._localFilePath}/{app_name}_{dateTime}.{self._fileformat}"
-                    fileSinkPipeline = f' filesink location="{self._filepath}" '
-                else:
-                    logger.info("Setting local filepath")
-                    fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=1000000000 max-files=480"
-                cmd = cmd + fileSinkPipeline
+                videoPipeline = f"pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! {muxer} name=sink !"
+                logger.info("Setting local filepath no rolling")
+                self._filepath = f"{self._localFilePath}/{app_name}_{dateTime}.{self._fileformat}"
+                fileSinkPipeline = f' filesink location="{self._filepath}" '
+            elif self._mode == "replayMode":
+                videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
+                logger.info("Setting tmp filepath")
+                self._filepath = (
+                    f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
+                )
+                logger.info("Setting local filepath")
+                fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=1000000000 max-files=480"
             else:
                 logger.info(f"Mode {self._mode} does not exist")
                 return
+
+            cmd = "{} {}{}".format(start_command, videoPipeline, fileSinkPipeline)
 
             logger.info("Making audio pipeline")
             # Creates audio pipeline
@@ -227,7 +221,7 @@ class Plugin:
     async def set_current_mode(self, mode: str):
         logger.info("New mode: " + mode)
         self._mode = mode
-        self._rolling = (self._mode == "rolling")
+        self._rolling = (self._mode == "replayMode")
 
     # Gets the current mode
     async def get_current_mode(self):
