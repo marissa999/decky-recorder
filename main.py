@@ -246,7 +246,7 @@ class Plugin:
         videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse"
         if muxer is not None:
             mux = Plugin._muxer_map.get(muxer, "mp4mux")
-            videoPipeline = f"{videoPipeline} ! muxer={mux} name=sink"
+            videoPipeline = f"{videoPipeline} ! {mux} name=sink"
         return videoPipeline
 
     def audio_pipeline(audioBitrate: int):
