@@ -118,33 +118,27 @@ class Plugin:
             )
 
             # Video Pipeline
-            if not self._rolling:
-                videoPipeline = f"pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! {muxer} name=sink !"
-            else:
-                videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
-
-            cmd = "{} {}".format(start_command, videoPipeline)
-
+            logger.info(f"Recording with mode: {self._mode}")
+            dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             # If mode is localFile
             if self._mode == "localFile":
-                logger.info("Local File Recording")
-                dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                if self._rolling:
-                    logger.info("Setting tmp filepath")
-                    self._filepath = (
-                        f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
-                    )
-                if not self._rolling:
-                    logger.info("Setting local filepath no rolling")
-                    self._filepath = f"{self._localFilePath}/{app_name}_{dateTime}.{self._fileformat}"
-                    fileSinkPipeline = f' filesink location="{self._filepath}" '
-                else:
-                    logger.info("Setting local filepath")
-                    fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=1000000000 max-files=480"
-                cmd = cmd + fileSinkPipeline
+                videoPipeline = f"pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! {muxer} name=sink !"
+                logger.info("Setting local filepath no rolling")
+                self._filepath = f"{self._localFilePath}/{app_name}_{dateTime}.{self._fileformat}"
+                fileSinkPipeline = f' filesink location="{self._filepath}" '
+            elif self._mode == "replayMode":
+                videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
+                logger.info("Setting tmp filepath")
+                self._filepath = (
+                    f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
+                )
+                logger.info("Setting local filepath")
+                fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=1000000000 max-files=480"
             else:
                 logger.info(f"Mode {self._mode} does not exist")
                 return
+
+            cmd = "{} {}{}".format(start_command, videoPipeline, fileSinkPipeline)
 
             logger.info("Making audio pipeline")
             # Creates audio pipeline
@@ -227,6 +221,7 @@ class Plugin:
     async def set_current_mode(self, mode: str):
         logger.info("New mode: " + mode)
         self._mode = mode
+        self._rolling = (self._mode == "replayMode")
 
     # Gets the current mode
     async def get_current_mode(self):
@@ -265,17 +260,42 @@ class Plugin:
         logger.info("Current local file format: " + self._fileformat)
         return self._fileformat
 
+    async def set_buffer_length(self, bufferLength: int):
+        logger.info("New buffer length: " + bufferLength)
+        self._bufferLength = bufferLength
+        await Plugin.saveConfig(self)
+
+    # Gets the file format
+    async def get_buffer_length(self):
+        logger.info("Current buffer length: " + self._bufferLength)
+        return self._bufferLength
+
+    # Sets rolling autostart
+    async def set_replaymode_autostart(self, replaymode_autostart: bool):
+        logger.info("New rolling autostart: " + replaymode_autostart)
+        self._replaymode_autostart = replaymode_autostart
+        await Plugin.saveConfig(self)
+
+    # Gets rolling autostart
+    async def get_replaymode_autostart(self):
+        logger.info("Current rolling autostart: " + self._replaymode_autostart)
+        return self._replaymode_autostart
+
+
     async def loadConfig(self):
         logger.info('Loading settings from: {}'.format(os.path.join(settingsDir, 'settings.json')))
         ### TODO: IMPLEMENT ###
         self._settings = SettingsManager(name="decky-loader-settings", settings_directory=settingsDir)
         self._settings.read()
-        self._mode = "localFile"
         self._audioBitrate = 192000
 
         self._localFilePath = self._settings.getSetting("output_folder", "/home/deck/Videos")
         self._fileformat = self._settings.getSetting("format", "mp4")
-        self._rolling = self._settings.getSetting("rolling", False)
+        self._mode = self._settings.getSetting("mode", "localFile")
+
+        self._replaymode_autostart = self._settings.getSetting("replay_autostart", False)
+        self._audioBitrate = self._settings.getSetting("audioBitrate", 128)
+        self._bufferLength = self._settings.getSetting("bufferLength", 30)
 
         # Need this for initialization only honestly
         await Plugin.saveConfig(self)
@@ -285,7 +305,11 @@ class Plugin:
         logger.info("Saving config")
         self._settings.setSetting("format", self._fileformat)
         self._settings.setSetting("output_folder", self._localFilePath)
-        self._settings.setSetting("rolling", self._rolling)
+        self._settings.setSetting("mode", self._mode)
+        self._settings.setSetting("audioBitrate", self._audioBitrate)
+        self._settings.setSetting("bufferLength", self._bufferLength)
+        self._settings.setSetting("replay_autostart", self._replaymode_autostart)
+
         return
 
     async def _main(self):
