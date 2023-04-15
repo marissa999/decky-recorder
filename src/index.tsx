@@ -46,7 +46,7 @@ const DeckyRecorder: VFC<{
 			setMode(localRecordingMode);
 		}
 
-		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_capturing', {});
+		const getIsCapturingResponse = await serverAPI.callPluginMethod('is_local_file_recording', {});
 		setCapturing(getIsCapturingResponse.result as boolean);
 
 		const getIsRollingResponse = await serverAPI.callPluginMethod('is_rolling', {});
