@@ -19,7 +19,6 @@ import { GeneralSettings } from "./GeneralSettings";
 import { LocalFileMode } from "./Modes/LocalFileMode";
 import { ReplayMode } from "./Modes/ReplayMode";
 import { DeckyRecorderLogic } from "./DeckyRecorderLogic";
-
 import { FaVideo } from "react-icons/fa";
 
 const DeckyRecorder: VFC<{
@@ -102,6 +101,7 @@ const DeckyRecorder: VFC<{
 export default definePlugin((serverApi: ServerAPI) => {
 	let logic = new DeckyRecorderLogic(serverApi);
 	let input_register = window.SteamClient.Input.RegisterForControllerStateChanges(logic.handleButtonInput);
+	//Router.MainRunningApp?.display_name
 	return {
 		title: <div className={staticClasses.Title}>Decky Recorder</div>,
 		content: <DeckyRecorder serverAPI={serverApi} logic={logic} />,

@@ -21,6 +21,7 @@ This plugin is still in WIP.
 - Avery for the original Recapture Plugin
 - Epictek for inspiring me to setup a proper build process (https://github.com/Epictek/DeckyStream I found out about this plugin when I was basically already done q.q)
 - [kleutzinger](https://github.com/kleutzinger) for fixing the file names and making it so it confirms with ISO_8601
+- [DerpyChap](https://github.com/DerpyChap) for adding a few audio related improvements (AAC and Stereo)
 
 ### Known issues
 - It seems like long recordings (over 30 minutes) dont get saved (https://github.com/marissa999/decky-recorder/issues/2#issuecomment-1445399044)
