@@ -7,14 +7,11 @@ import time
 from datetime import datetime
 from pathlib import Path
 from settings import SettingsManager
+import asyncio
 import decky_plugin
-import logging
 
 # Get environment variable
 settingsDir = os.environ["DECKY_PLUGIN_SETTINGS_DIR"]
-
-
-import asyncio
 
 DEPSPATH = Path(decky_plugin.DECKY_PLUGIN_DIR) / "backend/out"
 GSTPLUGINSPATH = DEPSPATH / "gstreamer-1.0"
@@ -24,17 +21,9 @@ std_err_file = open(Path(decky_plugin.DECKY_PLUGIN_LOG_DIR) / "decky-recorder-st
 
 logger = decky_plugin.logger
 
-from logging.handlers import TimedRotatingFileHandler
-log_file = Path(decky_plugin.DECKY_PLUGIN_LOG_DIR) / "decky-recorder.log"
-log_file_handler = TimedRotatingFileHandler(log_file, when="midnight", backupCount=2)
-log_file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-logger.handlers.clear()
-logger.addHandler(log_file_handler)
-
 try:
     sys.path.append(str(DEPSPATH / "psutil"))
     import psutil
-
     logger.info("Successfully loaded psutil")
 except Exception:
     logger.info(traceback.format_exc())
@@ -53,54 +42,140 @@ def in_gamemode():
     return False
 
 class Plugin:
-    _recording_process = None
-    _filepath: str = None
+
+    # Options
+    _localFilePath: str = "/home/deck/Videos"
     _mode: str = "localFile"
-    _audioBitrate: int = 192000
-    _localFilePath: str = decky_plugin.HOME + "/Videos"
-    _rollingRecordingFolder: str = "/dev/shm"
-    _rollingRecordingPrefix: str = "Decky-Recorder-Rolling"
     _fileformat: str = "mp4"
-    _rolling: bool = False
-    _last_clip_time: float = time.time()
+    _bufferLength: int = 30
+    _audioBitrate: int = 128
+    _replaymode_autostart: bool = False
+
     _watchdog_task = None
     _muxer_map = {"mp4": "mp4mux", "mkv": "matroskamux", "mov": "qtmux"}
     _settings = None
 
     async def clear_rogue_gst_processes(self):
         gst_pids = find_gst_processes()
-        curr_pid = self._recording_process.pid if self._recording_process is not None else None
+        record_pid = self._local_file_recording_process.pid if self._local_file_recording_process is not None else None
+        rolling_pid = self._rolling_process.pid if self._rolling_process is not None else None
         for pid in gst_pids:
-            if pid != curr_pid:
+            if pid != record_pid and pid != rolling_pid:
                 logger.info(f"Killing rogue process {pid}")
                 os.kill(pid, signal.SIGKILL)
 
     @asyncio.coroutine
     async def watchdog(self):
-        logger.info("Watchdog started")
+        print("in watchdog")
         while True:
+            print("watchdog ping")
             try:
                 in_gm = in_gamemode()
-                is_cap = await Plugin.is_capturing(self, verbose=False)
+                is_cap = await Plugin.is_capturing(self)
+                print(in_gm, is_cap)
                 if not in_gm and is_cap:
-                    logger.warn("Left gamemode but recording was still running, killing capture")
                     await Plugin.stop_capturing(self)
             except Exception:
                 logger.exception("watchdog")
             await asyncio.sleep(5)
 
-    # Starts the capturing process
-    async def start_capturing(self, app_name: str = ""):
+    ###################
+    # Local file mode #
+    ###################
+    _local_file_recording_process = None
+
+    # start local file recording
+    async def start_local_file_recording(self):
         try:
-            logger.info("Starting recording")
+            logger.info("Starting local file recording recording")
 
-            app_name = str(app_name)
-            if app_name == "" or app_name == "null":
-                app_name = "Decky-Recorder"
+            if await Plugin.is_local_file_recording(self) is True:
+                logger.info("Error: Already recording")
+                return
 
+            os.environ["XDG_RUNTIME_DIR"] = "/run/user/1000"
+            os.environ["XDG_SESSION_TYPE"] = "wayland"
+            os.environ["HOME"] = "/home/deck"
+
+            # Start command including plugin path and ld_lib path
+            start_command = f"GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={GSTPLUGINSPATH} LD_LIBRARY_PATH={DEPSPATH} gst-launch-1.0 -e -vvv"
+
+            # Video pipeline
+            logger.info("Making video pipeline")
+            muxer = Plugin._muxer_map.get(self._fileformat, "mp4mux")
+            videoPipeline = f"pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! {muxer} name=sink"
+
+            # Filesink Pipeline
+            logger.info("Making filesink pipeline")
+            dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            fullFilePath = f"{self._localFilePath}/Decky-Recorder_{dateTime}.{self._fileformat}"
+            fileSinkPipeline = f"filesink location={fullFilePath}"
+
+            logger.info("Making audio pipeline")
+            # Creates audio pipeline
+            audio_device_output = subprocess.getoutput("pactl get-default-sink")
+            logger.info(f"Audio device output {audio_device_output}")
+            for line in audio_device_output.split("\n"):
+                if "alsa_output" in line:
+                    monitor = line + ".monitor"
+                    break
+            audioPipeline = f"pulsesrc device=\"Recording_{monitor}\" ! audioconvert ! lamemp3enc target=bitrate bitrate={self._audioBitrate} cbr=true ! sink.audio_0"
+
+            # Starts the capture process
+            cmd = f"{start_command} {videoPipeline} ! {fileSinkPipeline} {audioPipeline}"
+            logger.info("Command: " + cmd)
+            self._local_file_recording_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
+            logger.info("Recording started!")
+        except Exception:
+            await Plugin.stop_local_file_recording(self)
+            logger.info(traceback.format_exc())
+        return
+
+    # Stops the capturing process and cleans up if the mode requires
+    async def stop_local_file_recording(self):
+        logger.info("Stopping local file recording")
+
+        if await Plugin.is_local_file_recording(self) is False:
+            logger.info("Error: No local file recording process to stop")
+            return
+
+        logger.info("Sending sigint to local file recording")
+        proc = self._local_file_recording_process
+        self._local_file_recording_process = None
+        proc.send_signal(signal.SIGINT)
+        logger.info("Sigint sent. Waiting...")
+        try:
+            proc.wait(timeout=10)
+        except Exception:
+            logger.warn("Could not interrupt gstreamer, killing instead")
+            proc.kill()
+
+        logger.info("Local file recording stopped!")
+        return
+
+    async def is_local_file_recording(self):
+	    return self._local_file_recording_process is not None
+
+    ###############
+    # Replay mode #
+    ###############
+    
+    _rolling_process = None
+    _filepath: str = None
+    _rollingRecordingFolder: str = "/dev/shm"
+    _rollingRecordingPrefix: str = "Decky-Recorder-Rolling"
+    _last_clip_time: float = time.time()
+
+    async def enable_rolling(self):
+        logger.info("Enable rolling was called begin")
+        # if capturing, stop that capture, then re-enable with rolling
+        if await Plugin.is_rolling(self):
+            await Plugin.disable_rolling(self)
+        try:
+            logger.info("Starting replay")
             muxer = Plugin._muxer_map.get(self._fileformat, "mp4mux")
             logger.info(f"Starting recording for {self._fileformat} with mux {muxer}")
-            if await Plugin.is_capturing(self) == True:
+            if await Plugin.is_rolling(self) == True:
                 logger.info("Error: Already recording")
                 return
 
@@ -111,117 +186,131 @@ class Plugin:
             os.environ["HOME"] = "/home/deck"
 
             # Start command including plugin path and ld_lib path
-            start_command = (
-                "GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={} LD_LIBRARY_PATH={} gst-launch-1.0 -e -vvv".format(
-                    str(GSTPLUGINSPATH), str(DEPSPATH)
-                )
-            )
+            start_command = f"GST_VAAPI_ALL_DRIVERS=1 GST_PLUGIN_PATH={GSTPLUGINSPATH} LD_LIBRARY_PATH={DEPSPATH} gst-launch-1.0 -e -vvv"
 
             # Video Pipeline
-            logger.info(f"Recording with mode: {self._mode}")
-            dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            # If mode is localFile
-            if self._mode == "localFile":
-                videoPipeline = f"pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse ! {muxer} name=sink !"
-                logger.info("Setting local filepath no rolling")
-                self._filepath = f"{self._localFilePath}/{app_name}_{dateTime}.{self._fileformat}"
-                fileSinkPipeline = f' filesink location="{self._filepath}" '
-            elif self._mode == "replayMode":
-                videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse !"
-                logger.info("Setting tmp filepath")
-                self._filepath = (
-                    f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
-                )
-                logger.info("Setting local filepath")
-                fileSinkPipeline = f" splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=1000000000 max-files=480"
-            else:
-                logger.info(f"Mode {self._mode} does not exist")
-                return
+            videoPipeline = "pipewiresrc do-timestamp=true ! vaapipostproc ! queue ! vaapih264enc ! h264parse"
 
-            cmd = "{} {}{}".format(start_command, videoPipeline, fileSinkPipeline)
+            # Splitmux Pipeline
+            logger.info("Setting local filepath")
+            self._filepath = f"{self._rollingRecordingFolder}/{self._rollingRecordingPrefix}_%02d.{self._fileformat}"
+            splitmuxPipeline = f"splitmuxsink name=sink muxer={muxer} muxer-pad-map=x-pad-map,audio=vid location={self._filepath} max-size-time=2000000000 max-files=240"
 
-            logger.info("Making audio pipeline")
             # Creates audio pipeline
+            logger.info("Making audio pipeline")
             audio_device_output = subprocess.getoutput("pactl get-default-sink")
             logger.info(f"Audio device output {audio_device_output}")
             for line in audio_device_output.split("\n"):
                 if "alsa_output" in line:
                     monitor = line + ".monitor"
                     break
-            cmd = (
-                cmd
-                + f' pulsesrc device="Recording_{monitor}" ! audio/x-raw, channels=2 ! audioconvert ! faac bitrate={self._audioBitrate} rate-control=2 ! sink.audio_0'
-            )
+            audioPipeline = f"pulsesrc device=\"Recording_{monitor}\" ! audioconvert ! lamemp3enc target=bitrate bitrate={self._audioBitrate} cbr=true ! sink.audio_0"
 
             # Starts the capture process
+            cmd = f"{start_command} {videoPipeline} ! {splitmuxPipeline} {audioPipeline}"
             logger.info("Command: " + cmd)
-            self._recording_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
-            logger.info("Recording started!")
+            self._rolling_process = subprocess.Popen(cmd, shell=True, stdout=std_out_file, stderr=std_err_file)
+
+            self._mode = "replayMode"
+
+            logger.info("Rolling started started!")
         except Exception:
-            await Plugin.stop_capturing(self)
+            await Plugin.disable_rolling(self)
             logger.info(traceback.format_exc())
-        return
-
-    # Stops the capturing process and cleans up if the mode requires
-    async def stop_capturing(self):
-        logger.info("Stopping recording")
-        if await Plugin.is_capturing(self) == False:
-            logger.info("Error: No recording process to stop")
-            return
-        logger.info("Sending sigin")
-        proc = self._recording_process
-        self._recording_process = None
-        proc.send_signal(signal.SIGINT)
-        logger.info("Sigin sent. Waiting...")
-        try:
-            proc.wait(timeout=10)
-        except Exception:
-            logger.warn("Could not interrupt gstreamer, killing instead")
-            await Plugin.clear_rogue_gst_processes(self)
-        logger.info("Waiting finished. Recording stopped!")
-
-        return
-
-    # Returns true if the plugin is currently capturing
-    async def is_capturing(self, verbose=True):
-        if verbose:
-            logger.info("Is capturing? " + str(self._recording_process is not None))
-        return self._recording_process is not None
-
-    async def is_rolling(self):
-        logger.info(f"Is Rolling? {self._rolling}")
-        await Plugin.clear_rogue_gst_processes(self)
-        return self._rolling
-
-    async def enable_rolling(self):
-        logger.info("Enable rolling was called begin")
-        # if capturing, stop that capture, then re-enable with rolling
-        if await Plugin.is_capturing(self):
-            await Plugin.stop_capturing(self)
-        self._rolling = True
-        await Plugin.start_capturing(self)
-        await Plugin.saveConfig(self)
         logger.info("Enable rolling was called end")
 
+    # Stops the capturing process and cleans
     async def disable_rolling(self):
         logger.info("Disable rolling was called begin")
-        if await Plugin.is_capturing(self):
-            await Plugin.stop_capturing(self)
-        self._rolling = False
-        await Plugin.saveConfig(self)
+        if await Plugin.is_rolling(self):
+            logger.info("Stopping replay")
+            logger.info("Sending sigint")
+            proc = self._rolling_process
+            self._rolling_process = None
+            proc.send_signal(signal.SIGINT)
+            logger.info("Sigin sent. Waiting...")
+            try:
+                proc.wait(timeout=10)
+            except Exception:
+                logger.warn("Could not interrupt gstreamer, killing instead")
+                await Plugin.clear_rogue_gst_processes(self)
+            logger.info("Waiting finished. Recording stopped!")
         try:
             for path in list(Path(self._rollingRecordingFolder).glob(f"{self._rollingRecordingPrefix}*")):
                 os.remove(str(path))
             logger.info("Deleted all files in rolling buffer")
         except Exception:
             logger.exception("Failed to delete rolling recording buffer files")
+        await Plugin.saveConfig(self)
         logger.info("Disable rolling was called end")
+
+    async def save_rolling_recording(self, clip_duration: float = 30.0):
+        clip_duration = int(clip_duration)
+        logger.info("Called save rolling function")
+        if time.time() - self._last_clip_time < 5:
+            logger.info("Too early to record another clip")
+            return 0
+        try:
+            clip_duration = float(clip_duration)
+            files = list(Path(self._rollingRecordingFolder).glob(f"{self._rollingRecordingPrefix}*.{self._fileformat}"))
+            times = [os.path.getctime(p) for p in files]
+            ft = sorted(zip(files, times), key=lambda x: -x[1])
+            max_time = time.time()
+            files_to_stitch = []
+            actual_dur = 0.0
+            for f, ftime in ft:
+                if max_time - ftime <= clip_duration:
+                    actual_dur = max_time - ftime
+                    files_to_stitch.append(f)
+            with open(self._rollingRecordingFolder + "/files", "w") as ff:
+                for f in reversed(files_to_stitch):
+                    ff.write(f"file {str(f)}\n")
+
+            dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            ffmpeg = subprocess.Popen(
+                f"ffmpeg -sseof -{clip_duration} -hwaccel vaapi -hwaccel_output_format vaapi -vaapi_device /dev/dri/renderD128 -f concat -safe 0 -i {self._rollingRecordingFolder}/files -c copy {self._localFilePath}/Decky-Recorder-{clip_duration}s-{dateTime}.{self._fileformat}",
+                shell=True,
+                stdout=std_out_file,
+                stderr=std_err_file,
+            )
+            ffmpeg.wait()
+            os.remove(self._rollingRecordingFolder + "/files")
+            self._last_clip_time = time.time()
+            logger.info("finish save rolling function")
+            return int(actual_dur)
+        except Exception:
+            logger.info(traceback.format_exc())
+        return -1
+
+    async def is_rolling(self):
+	    return self._rolling_process is not None
+
+    ###########
+    # General #
+    ###########
+
+    async def is_capturing(self):
+        if Plugin.is_local_file_recording(self) is True:
+            return True
+        if Plugin.is_local_file_recording(self) is True:
+            return True
+        return False
+
+    async def stop_capturing(self):
+        if Plugin.is_local_file_recording(self) is True:
+            await Plugin.stop_local_file_recording(self)
+        if Plugin.is_local_file_recording(self) is True:
+            return Plugin.disable_rolling(self)
+
+    ###########
+    # Options #
+    ###########
 
     # Sets the current mode, supported modes are: localFile
     async def set_current_mode(self, mode: str):
         logger.info("New mode: " + mode)
         self._mode = mode
-        self._rolling = (self._mode == "replayMode")
+        await Plugin.saveConfig(self)
 
     # Gets the current mode
     async def get_current_mode(self):
@@ -260,6 +349,7 @@ class Plugin:
         logger.info("Current local file format: " + self._fileformat)
         return self._fileformat
 
+    # Sets local file format
     async def set_buffer_length(self, bufferLength: int):
         logger.info("New buffer length: " + bufferLength)
         self._bufferLength = bufferLength
@@ -281,18 +371,15 @@ class Plugin:
         logger.info("Current rolling autostart: " + self._replaymode_autostart)
         return self._replaymode_autostart
 
-
     async def loadConfig(self):
         logger.info('Loading settings from: {}'.format(os.path.join(settingsDir, 'settings.json')))
-        ### TODO: IMPLEMENT ###
+
         self._settings = SettingsManager(name="decky-loader-settings", settings_directory=settingsDir)
         self._settings.read()
-        self._audioBitrate = 192000
 
         self._localFilePath = self._settings.getSetting("output_folder", "/home/deck/Videos")
         self._fileformat = self._settings.getSetting("format", "mp4")
         self._mode = self._settings.getSetting("mode", "localFile")
-
         self._replaymode_autostart = self._settings.getSetting("replay_autostart", False)
         self._audioBitrate = self._settings.getSetting("audioBitrate", 128)
         self._bufferLength = self._settings.getSetting("bufferLength", 30)
@@ -309,15 +396,19 @@ class Plugin:
         self._settings.setSetting("audioBitrate", self._audioBitrate)
         self._settings.setSetting("bufferLength", self._bufferLength)
         self._settings.setSetting("replay_autostart", self._replaymode_autostart)
-
         return
+
+    #########
+    # Other #
+    #########
 
     async def _main(self):
         loop = asyncio.get_event_loop()
         self._watchdog_task = loop.create_task(Plugin.watchdog(self))
         await Plugin.loadConfig(self)
-        if self._rolling:
-            await Plugin.start_capturing(self)
+        if self._replaymode_autostart is True:
+            await Plugin.set_current_mode(self, "replayMode")
+            await Plugin.enable_rolling(self)
         return
 
     async def _unload(self):
@@ -327,44 +418,3 @@ class Plugin:
             await Plugin.stop_capturing(self)
             await Plugin.saveConfig(self)
         return
-
-    async def save_rolling_recording(self, clip_duration: float = 30.0, app_name: str = ""):
-        app_name = str(app_name)
-        if app_name == "" or app_name == "null":
-            app_name = "Decky-Recorder"
-        clip_duration = int(clip_duration)
-        logger.info("Called save rolling function")
-        if time.time() - self._last_clip_time < 2:
-            logger.info("Too early to record another clip")
-            return 0
-        try:
-            clip_duration = float(clip_duration)
-            files = list(Path(self._rollingRecordingFolder).glob(f"{self._rollingRecordingPrefix}*.{self._fileformat}"))
-            times = [os.path.getctime(p) for p in files]
-            ft = sorted(zip(files, times), key=lambda x: -x[1])
-            max_time = time.time()
-            files_to_stitch = []
-            actual_dur = 0.0
-            for f, ftime in ft:
-                if max_time - ftime <= clip_duration:
-                    actual_dur = max_time - ftime
-                    files_to_stitch.append(f)
-            with open(self._rollingRecordingFolder + "/files", "w") as ff:
-                for f in reversed(files_to_stitch):
-                    ff.write(f"file {str(f)}\n")
-
-            dateTime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            ffmpeg = subprocess.Popen(
-                f'ffmpeg -hwaccel vaapi -hwaccel_output_format vaapi -vaapi_device /dev/dri/renderD128 -f concat -safe 0 -i {self._rollingRecordingFolder}/files -c copy "{self._localFilePath}/{app_name}-{clip_duration}s-{dateTime}.{self._fileformat}"',
-                shell=True,
-                stdout=std_out_file,
-                stderr=std_err_file,
-            )
-            ffmpeg.wait()
-            os.remove(self._rollingRecordingFolder + "/files")
-            self._last_clip_time = time.time()
-            logger.info("finish save rolling function")
-            return int(actual_dur)
-        except Exception:
-            logger.info(traceback.format_exc())
-        return -1

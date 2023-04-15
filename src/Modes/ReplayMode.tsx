@@ -65,10 +65,10 @@ export const ReplayMode: VFC<{
 
 	const replayModeButtonPressed = async () => {
 		if (!isReplayMode) {
-			serverAPI.callPluginMethod('start_capturing', {});
+			serverAPI.callPluginMethod('enable_replaymode', {});
 			setReplayMode(true);
 		} else {
-			serverAPI.callPluginMethod('stop_capturing', {});
+			serverAPI.callPluginMethod('disable_replaymode', {});
 			setReplayMode(false);
 		}
 	}
@@ -102,6 +102,7 @@ export const ReplayMode: VFC<{
 			</ButtonItem>
 			<Dropdown
 				menuLabel="Select the buffer length"
+				disabled={isReplayMode}
 				strDefaultLabel={"Length: " + buffer.label as string}
 				rgOptions={bufferOptions}
 				selectedOption={buffer}
