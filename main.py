@@ -157,6 +157,7 @@ class Plugin:
 
             self._rolling_process = Plugin.start_proces(
                 f"{videoPipeline} ! {splitmuxPipeline} {audioPipeline}")
+            Plugin.set_current_mode(self, "replayMode")
             logger.info("Replay started!")
         except Exception:
             await Plugin.disable_rolling(self)
@@ -383,7 +384,6 @@ class Plugin:
         self._watchdog_task = loop.create_task(Plugin.watchdog(self))
         await Plugin.loadConfig(self)
         if self._replaymode_autostart is True:
-            await Plugin.set_current_mode(self, "replayMode")
             await Plugin.enable_rolling(self)
         return
 
