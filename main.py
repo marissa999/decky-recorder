@@ -389,6 +389,7 @@ class Plugin:
 
     async def _unload(self):
         logger.info("Unload was called")
+        await Plugin.stop_capturing(self)
         await Plugin.clear_rogue_gst_processes(self)
         await Plugin.saveConfig(self)
         return
