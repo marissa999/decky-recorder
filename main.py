@@ -257,7 +257,7 @@ class Plugin:
             if "alsa_output" in line:
                 monitor = line + ".monitor"
                 break
-        audioPipeline = f"pulsesrc device=\"Recording_{monitor}\" ! audio/x-raw, channels=2 ! audioconvert ! faac bitrate={audioBitrate} rate-control=2 cbr=true ! sink.audio_0"
+        audioPipeline = f"pulsesrc device=\"Recording_{monitor}\" ! audio/x-raw, channels=2 ! audioconvert ! faac bitrate={audioBitrate} rate-control=2 ! sink.audio_0"
         return audioPipeline
 
     def start_proces(pipeline: str):
