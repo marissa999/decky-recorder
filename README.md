@@ -27,14 +27,25 @@ This plugin is still in WIP.
 - It seems like long recordings (over 30 minutes) dont get saved (https://github.com/marissa999/decky-recorder/issues/2#issuecomment-1445399044)
 - It seems like starting a recording while docked and outputting to a 4k monitor causes the Deck to crash (https://github.com/marissa999/decky-recorder/issues/8)
 
-### Building
-If you want to build this plugin in theory you only need to run build-zip.sh. You will need the following:
+### Initialization, Building & Running
+To build this plugin, first you need severeal dependencies:
 - npm
-- pnpm
+- pnpm 
 - python + pip
 - Docker
 - zip
-I only tested this on Arch Linux (which I use, btw!)
+
+If you build this repo yourself, chances are you want to be able to deploy it directly into your steamdeck. To do that, please make sure you have already setup a ssh connection with your deck and already establish ssh key. [You can read how to setup SSH to your steamdeck here](https://gist.github.com/andygeorge/eee2825fa6446b629745ea92e862593a).
+
+Then you can clone this repository/your own fork, enter the directory and initialize the project via:
+
+```bash
+make init
+```
+
+After init process completed, follow the on screen instruction, you will good to go :D
+
+Currently this setup is tested in Arch and MacOS (build via Docker).
 
 ### TODO
 - WIP: Adding the option to toggle game audio + mic audio (Current state: You can enable mic audio, but not disable game audio. Figure out a way to filter and remove audio from pipewiresrc?)

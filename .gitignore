@@ -48,3 +48,6 @@ backend/out
 decky-recorder.zip
 bin
 /.pnpm-store
+
+steamdeck
+steamdeck.pub
