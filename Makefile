@@ -15,7 +15,7 @@ vendor: ## Install project dependencies
 
 env: ## Create default .env file
 	@echo "+ $@"
-	@echo -e '# Makefile tools\nDECK_USER=deck\nDECK_HOST=\nDECK_PORT=22\nDECK_HOME=/home/deck\nDECK_KEY=~/.ssh/id_rsa' >> .env
+	@if [ ! -f .env ]; then cp env.sample .env; fi
 	@echo -n "PLUGIN_FOLDER=" >> .env
 	@jq -r .name package.json >> .env
 
